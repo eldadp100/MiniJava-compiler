@@ -53,7 +53,8 @@ public class Main {
                         throw new IllegalArgumentException("unknown rename type " + type);
                     }
 
-                    throw new UnsupportedOperationException("TODO - Ex. 1");
+                    RenameEx1 renamer = new RenameEx1(prog); // add AST here
+                    renamer.run();  // add parameters
 
                 } else {
                     throw new IllegalArgumentException("unknown command line action " + action);
