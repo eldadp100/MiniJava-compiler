@@ -11,7 +11,7 @@ public class RenameEx1 {
     public Status run(boolean isMethod, String originalName, String originalLine, String newName) {
 
         /* WRITE CODE HERE */
-        
+
         return Status.SUCCESS;
     }
 }
