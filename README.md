@@ -1,3 +1,6 @@
+This is our project. We should change the readme sometime
+
+
 Welcome to the compiler project 2020 starter kit!
 
 === Structure ===
