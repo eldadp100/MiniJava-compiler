@@ -1,29 +1,13 @@
 package ast;
 
+import java.util.ArrayList;
+
 public class AstMethodRenamerSecondTraverseVisitor implements Visitor {
-    String originalName;
-    int originalLine;
-    String newName;
 
-    ArrayList<AstNode> nodes = new ArrayList<>();
+    public AstMethodRenamerSecondTraverseVisitor() {
 
-    public AstMethodRenamerFirstTraverseVisitor(String _originalName, int _originalLine, String _newName) {
-        originalName = _originalName;
-        originalLine = _originalLine;
-        newName = _newName;
     }
 
-    public ArrayList<AstNode> getVisitorOrignalLines() {
-        return nodes;
-    }
-
-    public boolean isTheLine(AstNode node) {
-        if (node.lineNumber == originalLine) {
-            nodes.add(node);
-            return true;
-        }
-        return false;
-    }
 
     private void visitBinaryExpr(BinaryExpr e, String infixSymbol) {
         e.e1().accept(this);
