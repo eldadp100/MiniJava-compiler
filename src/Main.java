@@ -54,7 +54,7 @@ public class Main {
                     }
 
                     RenameEx1 renamer = new RenameEx1(prog); // add AST here
-                    renamer.run(isMethod, originalName, originalLine, newName);  // add parameters
+                    renamer.run(isMethod, originalName, Integer.parseInt(originalLine), newName);  // add parameters
 
                 } else {
                     throw new IllegalArgumentException("unknown command line action " + action);

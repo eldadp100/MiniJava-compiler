@@ -1,5 +1,5 @@
 
 public enum Status {
-    SUCCESS, NOT_SPECIFIED_ERROR, 
+    SUCCESS, NOT_SPECIFIED_ERROR, NoSuchLine
 }
 
