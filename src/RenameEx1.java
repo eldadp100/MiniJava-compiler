@@ -1,9 +1,8 @@
 import ast.AstNode;
-
 import java.util.ArrayList;
-
 import ast.*;
 import ast.Program;
+
 
 public class RenameEx1 {
     protected Program ast;
@@ -14,25 +13,35 @@ public class RenameEx1 {
 
     public Status run(boolean isMethod, String originalName, int originalLine, String newName) {
         if (isMethod) {
-            AstMethodRenamerFirstTraverseVisitor visitor1 = new AstMethodRenamerFirstTraverseVisitor(originalName, originalLine, newName);
-            ArrayList<AstNode> line_nodes = visitor1.getVisitorOrignalLines();
-            if (line_nodes.size() == 0)
+            AstMethodRenamerFirstTraverseVisitor visitor1 = new AstMethodRenamerFirstTraverseVisitor(originalName, originalLine);
+            MethodDecl decl = visitor1.decl;
+            if (decl == null)
                 return Status.NoSuchLine;
 
-            AstNode first_instance = line_nodes.get(0);
-            
+            // start renaming
+            for (ClassDecl c : visitor1.superclasses) {
+                for (MethodDecl m : c.methoddecls()) {
+                    if (m.name() == originalName)
+                        m.setName(newName);
+                }
+            }
 
-            // #1 investigate which type of declaration is it
-
-
-            // #2 appy second visior to find all right places and rename 
-            AstMethodRenamerSecondTraverseVisitor visitor2 = new AstMethodRenamerSecondTraverseVisitor();
+            for (ClassDecl c : visitor1.extendsclasees) {
+                for (MethodDecl m : c.methoddecls()) {
+                    if (m.name() == originalName)
+                        m.setName(newName);
+                }
+            }
+            // we left with renaming the calls expression. we need also static types information - maybe with same visitor.
+            for (MethodCallExpr mc : visitor1.calls) {
+                if ( TODO = write the condition here) {
+                    mc.setMethodId(decl.name());
+                }
+            }
 
         } else {
 
         }
-
-        
         
         return Status.SUCCESS;
     }
