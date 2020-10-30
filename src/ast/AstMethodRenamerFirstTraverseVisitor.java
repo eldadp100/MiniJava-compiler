@@ -5,28 +5,24 @@ import java.util.ArrayList;
 public class AstMethodRenamerFirstTraverseVisitor implements Visitor {
     String originalName;
     int originalLine;
-    String newName;
 
-    ArrayList<AstNode> nodes = new ArrayList<>();
+    public boolean declFound = false;
+    public MethodDecl decl = null;
+    public ClassDecl method_class = null;
+    public ClassDecl declInClass = null;
+    public ArrayList<MethodCallExpr> calls = new ArrayList<>();
+    public ArrayList<ClassDecl> superclasses = new ArrayList<>();
+    public ArrayList<ClassDecl> extendsclasees = new ArrayList<>();
 
-    public AstMethodRenamerFirstTraverseVisitor(String _originalName, int _originalLine, String _newName) {
+    // public ? vars_static_types;
+
+    public AstMethodRenamerFirstTraverseVisitor(String _originalName, int _originalLine) {
         originalName = _originalName;
         originalLine = _originalLine;
-        newName = _newName;
     }
 
-    public ArrayList<AstNode> getVisitorOrignalLines() {
-        return nodes;
-    }
 
-    public void isTheLine(AstNode node) {
-        if (node.lineNumber == originalLine) {
-            nodes.add(node);
-        }
-    }
-
-    public void generalAtStart(AstNode node) {
-        isTheLine(node);
+    private void generalAtStart(AstNode node) {
     }
 
     private void visitBinaryExpr(BinaryExpr e, String infixSymbol) {
@@ -39,8 +35,32 @@ public class AstMethodRenamerFirstTraverseVisitor implements Visitor {
     public void visit(Program program) {
         generalAtStart(program);
         program.mainClass().accept(this);
+        boolean tmp = declFound;
+        boolean add_extenders = false;
+        boolean add_supers = true;
         for (ClassDecl classdecl : program.classDecls()) {
+            if (add_supers)
+            {
+                if ((superclasses.size() == 0) || (classdecl.superName() == superclasses.get(superclasses.size()-1).name()))
+                {
+                    superclasses.add(classdecl);
+                } else {
+                    superclasses.clear();
+                    superclasses.add(classdecl);
+                }
+            }
+            else if (add_extenders)
+            {
+                extendsclasees.add(classdecl);
+            }
+            
             classdecl.accept(this);
+            if (!tmp && declFound)
+            {
+                method_class = classdecl;
+                add_extenders = true;
+                add_supers = false;
+            }
         }
     }
 
@@ -52,8 +72,16 @@ public class AstMethodRenamerFirstTraverseVisitor implements Visitor {
             fieldDecl.accept(this);
         }
         for (var methodDecl : classDecl.methoddecls()) {
+            boolean tmp = declFound;
             methodDecl.accept(this);
+            if (!tmp && declFound){
+                // we found the decliration! Lets find the classes
+                declInClass = classDecl;
+            }
         }
+
+
+
     }
 
     @Override
@@ -68,6 +96,10 @@ public class AstMethodRenamerFirstTraverseVisitor implements Visitor {
     @Override
     public void visit(MethodDecl methodDecl) {
         generalAtStart(methodDecl);
+        if (methodDecl.lineNumber == originalLine){
+            decl = methodDecl;
+            declFound = true;
+        }
         methodDecl.returnType().accept(this);
 
         for (var formal : methodDecl.formals()) {
@@ -206,6 +238,10 @@ public class AstMethodRenamerFirstTraverseVisitor implements Visitor {
     @Override
     public void visit(MethodCallExpr e) {
         generalAtStart(e);
+        if (e.methodId() == originalName) {
+            calls.add(e);
+        }
+
         e.ownerExpr().accept(this);
         for (Expr arg : e.actuals()) {
             arg.accept(this);
