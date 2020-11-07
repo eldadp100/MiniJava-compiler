@@ -1,1 +1,1 @@
-java -jar mjavac.jar unmarshal rename var x 10 y  examples/ex1/field.java.xml examples/ex1/field_renamed.java.xml
+java -jar mjavac.jar unmarshal rename var x 10 y  examples/ex1/field.java.xml examples/ex1/output/field_renamed.java.xml

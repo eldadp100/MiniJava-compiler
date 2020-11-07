@@ -1,4 +1,7 @@
 import ast.*;
+import visitors.AstPrintVisitor;
+import visitors.AstRenamerVisitor;
+import visitors.AstSymbolsVisitor;
 
 import java.io.*;
 
@@ -53,9 +56,19 @@ public class Main {
                         throw new IllegalArgumentException("unknown rename type " + type);
                     }
 
-                    RenameEx1 renamer = new RenameEx1(prog); // add AST here
-                    renamer.run(isMethod, originalName, Integer.parseInt(originalLine), newName);  // add parameters
+                    AstSymbolsVisitor astSymbols = new AstSymbolsVisitor();
+                    astSymbols.visit(prog);
 
+                    AstRenamerVisitor astRenamer = new AstRenamerVisitor(
+                        astSymbols.GetAstSymbolTable(),
+                        originalName,
+                        newName,
+                        Integer.parseInt(originalLine),
+                        isMethod);
+                    astRenamer.visit(prog);
+
+                    AstXMLSerializer xmlSerializer = new AstXMLSerializer();
+                    xmlSerializer.serialize(prog, outfilename);
                 } else {
                     throw new IllegalArgumentException("unknown command line action " + action);
                 }
