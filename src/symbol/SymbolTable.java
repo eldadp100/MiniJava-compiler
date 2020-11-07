@@ -22,7 +22,8 @@ public class SymbolTable {
 
     public Symbol GetSymbol(String name, SymbolType type)
     {
-        if (entries.containsKey(name) && entries.get(name).getType() == type)
+        if ((entries.containsKey(name)) &&
+            (entries.get(name).getType() == type))
         {
             return entries.get(name);
         }
@@ -33,5 +34,44 @@ public class SymbolTable {
         }
 
         throw new RuntimeException(String.format("Symbol \"%s\" cannot be found", name));
+    }
+
+    public void RenameMethodInHierarchy(String name, String newName)
+    {
+         if ((this.entries.containsKey(name)) &&
+             (this.entries.get(name).getType() == SymbolType.METHOD))
+        {
+            this.entries.get(name).rename(newName);
+        }
+
+        if (this.parentSymbolTable != null)
+            this.parentSymbolTable.RenameMethodInHierarchy(name, newName);
+    }
+
+    public void RenameMethodInHierarchy(String name, String newName, int line)
+    {
+        // First, check if a method with that name was declared in the given line
+        // in the hierarchy        
+        var symbolTable = this;
+        boolean shouldRename = false;
+
+        while (symbolTable != null)
+        {
+            if ((symbolTable.entries.containsKey(name)) &&
+                (symbolTable.entries.get(name).getType() == SymbolType.METHOD) &&
+                (symbolTable.entries.get(name).getLine() == line))
+            {
+                // Found target method in hierarchy
+                shouldRename = true;
+                break;
+            }
+
+            symbolTable = symbolTable.parentSymbolTable;
+        }  
+        
+        if (shouldRename)
+        {
+            this.RenameMethodInHierarchy(name, newName);
+        }
     }
 }
