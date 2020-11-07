@@ -1,6 +1,6 @@
 import ast.*;
 import visitors.AstPrintVisitor;
-import visitors.AstRenameVisitor;
+import visitors.AstRenamerVisitor;
 import visitors.AstSymbolsVisitor;
 
 import java.io.*;
@@ -59,17 +59,16 @@ public class Main {
                     AstSymbolsVisitor astSymbols = new AstSymbolsVisitor();
                     astSymbols.visit(prog);
 
-                    AstRenameVisitor astRename = new AstRenameVisitor(
+                    AstRenamerVisitor astRenamer = new AstRenamerVisitor(
                         astSymbols.GetAstSymbolTable(),
                         originalName,
                         newName,
                         Integer.parseInt(originalLine),
                         isMethod);
-                    astRename.visit(prog);
+                    astRenamer.visit(prog);
 
                     AstXMLSerializer xmlSerializer = new AstXMLSerializer();
                     xmlSerializer.serialize(prog, outfilename);
-                    
                 } else {
                     throw new IllegalArgumentException("unknown command line action " + action);
                 }

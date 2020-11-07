@@ -1,7 +1,9 @@
 package symbol;
 
 import ast.AstNode;
-import ast.VarDecl;
+import ast.AstType;
+import ast.MethodDecl;
+import ast.VariableIntroduction;
 
 public class Symbol {
     private String name;
@@ -30,6 +32,19 @@ public class Symbol {
         return this.node.lineNumber;
     }
 
+    public AstType getStaticType()
+    {
+        if (this.type == SymbolType.VAR)
+        {
+            var varDecl = (VariableIntroduction)this.node;
+            return varDecl.type();
+        }
+        else
+        {
+            throw new RuntimeException("Cannot get static type of a method");
+        }
+    }
+
     public void rename(String newName)
     {
         this.name = newName;
@@ -37,8 +52,13 @@ public class Symbol {
         switch(this.type)
         {
             case VAR:
-                var varDecl = (VarDecl)this.node;
+                var varDecl = (VariableIntroduction)this.node;
                 varDecl.setName(newName);
+                break;
+
+            case METHOD:
+                var methodDecl = (MethodDecl)this.node;
+                methodDecl.setName(newName);
                 break;
         }
     }

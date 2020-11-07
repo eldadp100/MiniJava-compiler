@@ -5,41 +5,45 @@ import symbol.AstSymbols;
 import symbol.Symbol;
 import symbol.SymbolType;
 
-public class AstRenameVisitor implements Visitor {
+public class AstRenamerVisitor implements Visitor {
     private AstSymbols astSymbols;
     private String symbolToRename;
     private String newSymbolName;
     private int symbolLine;
-    private boolean isMethod;
+    private SymbolType symbolType;
 
-    public AstRenameVisitor(AstSymbols astSymbols, String originalName, String newName,
+    public AstRenamerVisitor(AstSymbols astSymbols, String originalName, String newName,
                                 int line, boolean isMethod)
     {    
         this.astSymbols = astSymbols;
         this.symbolToRename = originalName;
         this.newSymbolName = newName;
         this.symbolLine = line;
-        this.isMethod = isMethod;
+        this.symbolType = isMethod ? SymbolType.METHOD : SymbolType.VAR;
     }
 
-    private boolean IsRenameRequired(AstNode node, String name)
+    private boolean ShouldRenameStatement(AstNode node, String name, SymbolType type)
     {
         if (!name.equals(this.symbolToRename))
             return false;
 
-        var symbolType = this.isMethod ? SymbolType.METHOD : SymbolType.VAR;
-        Symbol symbol = this.astSymbols.GetSymbol(node, name, symbolType);
+        if (type != this.symbolType)
+            return false;
+
+        Symbol symbol = this.astSymbols.GetSymbol(node, name, type);
         return symbol.getLine() == this.symbolLine;
     }
 
-    private void RenameSymbolIfNeeded(AstNode node, String name)
+    private void RenameSymbolIfNeeded(AstNode node, String name, SymbolType type)
     {
-        if (node.lineNumber == this.symbolLine)
-        {
-            var symbolType = this.isMethod ? SymbolType.METHOD : SymbolType.VAR;
-            Symbol symbol = this.astSymbols.GetSymbol(node, name, symbolType);
-            symbol.rename(this.newSymbolName);
-        }
+        if (node.lineNumber != this.symbolLine)
+            return;
+
+        if (type != this.symbolType)
+            return;
+
+        Symbol symbol = this.astSymbols.GetSymbol(node, name, symbolType);
+        symbol.rename(this.newSymbolName);
     }
 
     @Override
@@ -68,6 +72,8 @@ public class AstRenameVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
+        this.RenameSymbolIfNeeded(methodDecl, methodDecl.name(), SymbolType.METHOD);
+
         methodDecl.returnType().accept(this);
         
         for (var formal : methodDecl.formals()) {
@@ -85,12 +91,14 @@ public class AstRenameVisitor implements Visitor {
 
     @Override
     public void visit(FormalArg formalArg) {
+        this.RenameSymbolIfNeeded(formalArg, formalArg.name(), SymbolType.VAR);
+
         formalArg.type().accept(this);
     }
 
     @Override
     public void visit(VarDecl varDecl) {
-        this.RenameSymbolIfNeeded(varDecl, varDecl.name());
+        this.RenameSymbolIfNeeded(varDecl, varDecl.name(), SymbolType.VAR);
 
         varDecl.type().accept(this);
     }
@@ -122,7 +130,7 @@ public class AstRenameVisitor implements Visitor {
 
     @Override
     public void visit(AssignStatement assignStatement) {
-        if (IsRenameRequired(assignStatement, assignStatement.lv()))
+        if (ShouldRenameStatement(assignStatement, assignStatement.lv(), SymbolType.VAR))
         {
             System.out.println(String.format("%s -> %s", assignStatement.lv(), this.newSymbolName));
             assignStatement.setLv(this.newSymbolName);
@@ -179,7 +187,14 @@ public class AstRenameVisitor implements Visitor {
     }
 
     @Override
-    public void visit(MethodCallExpr e) {      
+    public void visit(MethodCallExpr e) {  
+        // Notice that we pass the owner expression when looking for symbols here.
+        if (ShouldRenameStatement(e.ownerExpr(), e.methodId(), SymbolType.METHOD))
+        {
+            System.out.println(String.format("%s -> %s", e.methodId(), this.newSymbolName));
+            e.setMethodId(this.newSymbolName);
+        }
+        
         e.ownerExpr().accept(this);
 
         for (Expr arg : e.actuals()) {
@@ -201,7 +216,7 @@ public class AstRenameVisitor implements Visitor {
 
     @Override
     public void visit(IdentifierExpr e) {
-        if (IsRenameRequired(e, e.id()))
+        if (ShouldRenameStatement(e, e.id(), SymbolType.VAR))
         {
             System.out.println(String.format("%s -> %s", e.id(), this.newSymbolName));
             e.setId(this.newSymbolName);

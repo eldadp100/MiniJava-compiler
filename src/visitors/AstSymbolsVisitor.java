@@ -1,41 +1,57 @@
 package visitors;
 
+import java.util.Stack;
+
 import ast.*;
 import symbol.AstSymbols;
 import symbol.SymbolTable;
 import symbol.SymbolType;
+import symbol.UnresolvedSymbol;
 
 public class AstSymbolsVisitor implements Visitor {
     private AstSymbols astSymbols = new AstSymbols();
+    private Stack<UnresolvedSymbol> unresolvedSymbols = new Stack<>();
 
     private void CreateSymbolTable(AstNode node)
     {
-        CreateSymbolTable(node, null);
+        CreateSymbolTable(node, null, null);
+    }
+
+    private void CreateSymbolTable(AstNode node, String className)
+    {
+        CreateSymbolTable(node, null, className);
     }
 
     private void CreateSymbolTable(AstNode node, AstNode parentNode)
     {
-        System.out.println("Creating a new symbol table");
-        if (parentNode == null)
-        {
-            astSymbols.Insert(node, new SymbolTable());
-        }
-        else
-        {
-            SymbolTable parentSymbolTable = astSymbols.GetSymbolTable(parentNode);
-            astSymbols.Insert(node, new SymbolTable(parentSymbolTable));
-        }
+        CreateSymbolTable(node, astSymbols.GetSymbolTableByNode(parentNode), null);
     }
 
-    private void SkipSymbolTable(AstNode node, AstNode parentNode)
+    private void CreateSymbolTable(AstNode node, SymbolTable parentSymbolTable, String className)
     {
-        astSymbols.Insert(node, astSymbols.GetSymbolTable(parentNode));
+        System.out.println("Creating a new symbol table");
+        
+        SymbolTable symbolTable;
+        if (parentSymbolTable == null)
+            symbolTable = new SymbolTable();
+        else
+            symbolTable = new SymbolTable(parentSymbolTable);
+
+        if (className == null)
+            astSymbols.InsertMethod(node, symbolTable);
+        else
+            astSymbols.InsertClass(node, symbolTable, className);
+    }
+
+    private void RedirectSymbolTable(AstNode node, AstNode parentNode)
+    {
+        astSymbols.InsertNodeRedirection(node, astSymbols.GetSymbolTableByNode(parentNode));
     }
 
     private void InsertSymbol(AstNode parent, String name, SymbolType type, AstNode node)
     {
         System.out.println(String.format("Symbol: %s,\tType: %s", name, type.name()));
-        var scopeSymbolTable = astSymbols.GetSymbolTable(parent);
+        var scopeSymbolTable = astSymbols.GetSymbolTableByNode(parent);
         scopeSymbolTable.InsertSymbol(name, type, node);
     }
 
@@ -54,14 +70,27 @@ public class AstSymbolsVisitor implements Visitor {
         for (ClassDecl classDecl : program.classDecls()) {
             classDecl.accept(this);
         }
+
+        // Handle unresolved symbols
+        while (!unresolvedSymbols.empty())
+            unresolvedSymbols.pop().resolve(this.astSymbols);
     }
 
     @Override
     public void visit(ClassDecl classDecl) {
-            CreateSymbolTable(classDecl);
+        if (classDecl.superName() != null)
+        {
+            var parentClassSymbolTable = this.astSymbols.GetSymbolTableByClass(classDecl.superName());
+            CreateSymbolTable(classDecl, parentClassSymbolTable, classDecl.name());
+        }
+        else
+        {
+            CreateSymbolTable(classDecl, classDecl.name());
+        }
+        
         for (var fieldDecl : classDecl.fields()) {
             InsertSymbol(classDecl, fieldDecl.name(), SymbolType.VAR, fieldDecl);
-            SkipSymbolTable(fieldDecl, classDecl);
+            RedirectSymbolTable(fieldDecl, classDecl);
             fieldDecl.accept(this);
         }
         for (var methodDecl : classDecl.methoddecls()) {
@@ -73,162 +102,163 @@ public class AstSymbolsVisitor implements Visitor {
 
     @Override
     public void visit(MainClass mainClass) {
+        CreateSymbolTable(mainClass.mainStatement());
         mainClass.mainStatement().accept(this);
     }
 
     @Override
     public void visit(MethodDecl methodDecl) {
-        SkipSymbolTable(methodDecl.returnType(), methodDecl);
+        RedirectSymbolTable(methodDecl.returnType(), methodDecl);
         methodDecl.returnType().accept(this);
         
         for (var formal : methodDecl.formals()) {
             InsertSymbol(methodDecl, formal.name(), SymbolType.VAR, formal);
-            SkipSymbolTable(formal, methodDecl);
+            RedirectSymbolTable(formal, methodDecl);
             formal.accept(this);
         }
         for (var varDecl : methodDecl.vardecls()) {
             InsertSymbol(methodDecl, varDecl.name(), SymbolType.VAR, varDecl);
-            SkipSymbolTable(varDecl, methodDecl);
+            RedirectSymbolTable(varDecl, methodDecl);
             varDecl.accept(this);
         }
         for (var stmt : methodDecl.body()) {
-            SkipSymbolTable(stmt, methodDecl);
+            RedirectSymbolTable(stmt, methodDecl);
             stmt.accept(this);
         }
 
-        SkipSymbolTable(methodDecl.ret(), methodDecl);
+        RedirectSymbolTable(methodDecl.ret(), methodDecl);
         methodDecl.ret().accept(this);
     }
 
     @Override
     public void visit(FormalArg formalArg) {
-        SkipSymbolTable(formalArg.type(), formalArg);
+        RedirectSymbolTable(formalArg.type(), formalArg);
         formalArg.type().accept(this);
     }
 
     @Override
     public void visit(VarDecl varDecl) {
-        SkipSymbolTable(varDecl.type(), varDecl);
+        RedirectSymbolTable(varDecl.type(), varDecl);
         varDecl.type().accept(this);
     }
 
     @Override
     public void visit(BlockStatement blockStatement) {
         for (var s : blockStatement.statements()) {
-            SkipSymbolTable(s, blockStatement);
+            RedirectSymbolTable(s, blockStatement);
             s.accept(this);
         }
     }
 
     @Override
     public void visit(IfStatement ifStatement) {
-        SkipSymbolTable(ifStatement.cond(), ifStatement);
+        RedirectSymbolTable(ifStatement.cond(), ifStatement);
         ifStatement.cond().accept(this);
 
-        SkipSymbolTable(ifStatement.thencase(), ifStatement);
+        RedirectSymbolTable(ifStatement.thencase(), ifStatement);
         ifStatement.thencase().accept(this);
 
-        SkipSymbolTable(ifStatement.elsecase(), ifStatement);
+        RedirectSymbolTable(ifStatement.elsecase(), ifStatement);
         ifStatement.elsecase().accept(this);
     }
 
     @Override
     public void visit(WhileStatement whileStatement) {
-        SkipSymbolTable(whileStatement.cond(), whileStatement);
+        RedirectSymbolTable(whileStatement.cond(), whileStatement);
         whileStatement.cond().accept(this);
 
-        SkipSymbolTable(whileStatement.body(), whileStatement);
+        RedirectSymbolTable(whileStatement.body(), whileStatement);
         whileStatement.body().accept(this);
     }
 
     @Override
     public void visit(SysoutStatement sysoutStatement) {
-        SkipSymbolTable(sysoutStatement.arg(), sysoutStatement);
+        RedirectSymbolTable(sysoutStatement.arg(), sysoutStatement);
         sysoutStatement.arg().accept(this);
     }
 
     @Override
     public void visit(AssignStatement assignStatement) {
-        SkipSymbolTable(assignStatement.rv(), assignStatement);
+        RedirectSymbolTable(assignStatement.rv(), assignStatement);
         assignStatement.rv().accept(this);
     }
 
     @Override
     public void visit(AssignArrayStatement assignArrayStatement) {
-        SkipSymbolTable(assignArrayStatement.index(), assignArrayStatement);
+        RedirectSymbolTable(assignArrayStatement.index(), assignArrayStatement);
         assignArrayStatement.index().accept(this);
 
-        SkipSymbolTable(assignArrayStatement.rv(), assignArrayStatement);
+        RedirectSymbolTable(assignArrayStatement.rv(), assignArrayStatement);
         assignArrayStatement.rv().accept(this);
     }
 
     @Override
     public void visit(AndExpr e) {
-        SkipSymbolTable(e.e1(), e);
+        RedirectSymbolTable(e.e1(), e);
         e.e1().accept(this);
 
-        SkipSymbolTable(e.e2(), e);
+        RedirectSymbolTable(e.e2(), e);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(LtExpr e) {
-        SkipSymbolTable(e.e1(), e);
+        RedirectSymbolTable(e.e1(), e);
         e.e1().accept(this);
 
-        SkipSymbolTable(e.e2(), e);
+        RedirectSymbolTable(e.e2(), e);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(AddExpr e) {
-        SkipSymbolTable(e.e1(), e);
+        RedirectSymbolTable(e.e1(), e);
         e.e1().accept(this);
 
-        SkipSymbolTable(e.e2(), e);
+        RedirectSymbolTable(e.e2(), e);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(SubtractExpr e) {
-        SkipSymbolTable(e.e1(), e);
+        RedirectSymbolTable(e.e1(), e);
         e.e1().accept(this);
 
-        SkipSymbolTable(e.e2(), e);
+        RedirectSymbolTable(e.e2(), e);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(MultExpr e) {
-        SkipSymbolTable(e.e1(), e);
+        RedirectSymbolTable(e.e1(), e);
         e.e1().accept(this);
 
-        SkipSymbolTable(e.e2(), e);
+        RedirectSymbolTable(e.e2(), e);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(ArrayAccessExpr e) {
-        SkipSymbolTable(e.arrayExpr(), e);
+        RedirectSymbolTable(e.arrayExpr(), e);
         e.arrayExpr().accept(this);
         
-        SkipSymbolTable(e.indexExpr(), e);
+        RedirectSymbolTable(e.indexExpr(), e);
         e.indexExpr().accept(this);
     }
 
     @Override
     public void visit(ArrayLengthExpr e) {
-        SkipSymbolTable(e.arrayExpr(), e);
+        RedirectSymbolTable(e.arrayExpr(), e);
         e.arrayExpr().accept(this);
     }
 
     @Override
     public void visit(MethodCallExpr e) { 
-        SkipSymbolTable(e.ownerExpr(), e);
+        RedirectSymbolTable(e.ownerExpr(), e);
         e.ownerExpr().accept(this);
 
         for (Expr arg : e.actuals()) {
-            SkipSymbolTable(arg, e);
+            RedirectSymbolTable(arg, e);
             arg.accept(this);
         }
     }
@@ -247,6 +277,14 @@ public class AstSymbolsVisitor implements Visitor {
 
     @Override
     public void visit(IdentifierExpr e) {
+        var symbol = this.astSymbols.GetSymbol(e, e.id(), SymbolType.VAR);
+        String className = this.astSymbols.GetRefTypeName(symbol.getStaticType());
+        if (className != null)
+        {
+            // We would like to update the symbol table of this node later,
+            // when all classes have been resolved.
+            unresolvedSymbols.push(new UnresolvedSymbol(e, className));
+        }
     }
 
     public void visit(ThisExpr e) {
@@ -254,17 +292,20 @@ public class AstSymbolsVisitor implements Visitor {
 
     @Override
     public void visit(NewIntArrayExpr e) {
-        SkipSymbolTable(e.lengthExpr(), e);
+        RedirectSymbolTable(e.lengthExpr(), e);
         e.lengthExpr().accept(this);
     }
 
     @Override
     public void visit(NewObjectExpr e) {
+        // We would like to update the symbol table of this node later,
+        // when all classes have been resolved.
+        unresolvedSymbols.push(new UnresolvedSymbol(e, e.classId()));
     }
 
     @Override
     public void visit(NotExpr e) {
-        SkipSymbolTable(e.e(), e);
+        RedirectSymbolTable(e.e(), e);
         e.e().accept(this);
     }
 
@@ -282,5 +323,6 @@ public class AstSymbolsVisitor implements Visitor {
 
     @Override
     public void visit(RefType t) {
+        this.astSymbols.InsertRefType(t, t.id());
     }
 }
