@@ -6,6 +6,8 @@ import ast.*;
 import symbol.AstSymbols;
 import symbol.Symbol;
 import symbol.SymbolType;
+import symbol.SymbolTable;
+import visitors.helpers.SuspectedMethodDecl;
 import visitors.helpers.SuspectedMethodCall;
 
 public class AstRenamerVisitor implements Visitor {
@@ -14,7 +16,9 @@ public class AstRenamerVisitor implements Visitor {
     private String newSymbolName;
     private int symbolLine;
     private SymbolType symbolType;
+    private Stack<SuspectedMethodDecl> suspectedMethodDecls = new Stack<>();
     private Stack<SuspectedMethodCall> suspectedMethodCalls = new Stack<>();
+    private AstNode varToBeRenamed = null;
 
     public AstRenamerVisitor(AstSymbols astSymbols, String originalName, String newName,
                                 int line, boolean isMethod)
@@ -47,23 +51,36 @@ public class AstRenamerVisitor implements Visitor {
             return;
 
         // Notice that we pass the owner expression when looking for symbols here
-        Symbol symbol = this.astSymbols.GetSymbol(
-            methodCall.ownerExpr(), methodCall.methodId(), SymbolType.METHOD);
-
+        Symbol symbol;
+        try {
+            symbol = this.astSymbols.GetSymbol(
+                methodCall.ownerExpr(), methodCall.methodId(), SymbolType.METHOD);
+        } catch (Exception e) {
+            // The method symbol must have been renamed
+            symbol = this.astSymbols.GetSymbol(
+                methodCall.ownerExpr(), this.newSymbolName, SymbolType.METHOD);
+        }
+        
         // Save the method call expression to be resolved later
         this.suspectedMethodCalls.push(new SuspectedMethodCall(methodCall, symbol));
     }
 
-    private void RenameMethodSymbolIfNeeded(AstNode node, String name)
+    private void RenameMethodSymbolIfNeeded(MethodDecl methodDecl)
     {
-        if (!name.equals(this.symbolToRename))
+        if (!methodDecl.name().equals(this.symbolToRename))
             return;
 
         if (this.symbolType != SymbolType.METHOD)
             return;
 
-        var symbolTable = this.astSymbols.GetSymbolTableByNode(node);
-        symbolTable.RenameMethodInHierarchy(name, this.newSymbolName, this.symbolLine);
+        var symbolTable = this.astSymbols.GetSymbolTableByNode(methodDecl);
+
+        if (this.symbolLine == methodDecl.lineNumber)
+            // Rename this method and methods with the same name in its hierarchy
+            symbolTable.RenameMethodInHierarchy(methodDecl.name(), this.newSymbolName);
+        else
+            // We will check later if the target method in its hierarchy
+            suspectedMethodDecls.push(new SuspectedMethodDecl(symbolTable, this.symbolToRename, this.newSymbolName));
     }
 
     private void RenameVarSymbolIfNeeded(AstNode node, String name)
@@ -77,8 +94,7 @@ public class AstRenamerVisitor implements Visitor {
         if (this.symbolType != SymbolType.VAR)
             return;
 
-        Symbol symbol = this.astSymbols.GetSymbol(node, name, symbolType);
-        symbol.rename(this.newSymbolName);
+        this.varToBeRenamed = node;
     }
 
     @Override
@@ -89,7 +105,17 @@ public class AstRenamerVisitor implements Visitor {
             classDecl.accept(this);
         }
 
-        // Resolve suspected method calls
+        // Rename the variable declaration if required
+        if (this.varToBeRenamed != null)
+        {
+            SymbolTable symbolTable = this.astSymbols.GetSymbolTableByNode(this.varToBeRenamed);
+            symbolTable.RenameSymbol(this.symbolToRename, this.newSymbolName, symbolType);
+        }
+
+        // Resolve suspected method decls and calls
+        while (!suspectedMethodDecls.empty())
+            suspectedMethodDecls.pop().resolve();
+
         while (!suspectedMethodCalls.empty())
             suspectedMethodCalls.pop().resolve();
     }
@@ -111,7 +137,7 @@ public class AstRenamerVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
-        this.RenameMethodSymbolIfNeeded(methodDecl, methodDecl.name());
+        this.RenameMethodSymbolIfNeeded(methodDecl);
 
         methodDecl.returnType().accept(this);
         

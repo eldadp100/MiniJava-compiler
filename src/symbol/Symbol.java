@@ -9,6 +9,7 @@ public class Symbol {
     private String name;
     private SymbolType type;
     private AstNode node;
+    private boolean renamed = false;
 
     public Symbol(String name, SymbolType type, AstNode node)
     {
@@ -45,6 +46,11 @@ public class Symbol {
         }
     }
 
+    public boolean wasRenamed()
+    {
+        return this.renamed;
+    }
+
     public void rename(String newName)
     {
         this.name = newName;
@@ -61,5 +67,7 @@ public class Symbol {
                 methodDecl.setName(newName);
                 break;
         }
+
+        this.renamed = true;
     }
 }
