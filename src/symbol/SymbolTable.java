@@ -6,7 +6,8 @@ import java.util.Map;
 import ast.AstNode;
 
 public class SymbolTable {
-    private Map<String, Symbol> entries = new HashMap<>();
+    private Map<String, Symbol> methods = new HashMap<>();
+    private Map<String, Symbol> vars = new HashMap<>();
     private SymbolTable parentSymbolTable;
 
     public SymbolTable() {}
@@ -17,13 +18,21 @@ public class SymbolTable {
 
     public void InsertSymbol(String name, SymbolType type, AstNode node)
     {
-        entries.put(name, new Symbol(name, type, node));
+        if (type == SymbolType.METHOD)
+            methods.put(name, new Symbol(name, type, node));
+        else
+            vars.put(name, new Symbol(name, type, node));
     }
 
     public Symbol GetSymbol(String name, SymbolType type)
     {
-        if ((entries.containsKey(name)) &&
-            (entries.get(name).getType() == type))
+        Map<String, Symbol> entries;
+        if (type == SymbolType.METHOD)
+            entries = this.methods;
+        else
+            entries = this.vars;
+
+        if (entries.containsKey(name))
         {
             return entries.get(name);
         }
@@ -36,42 +45,48 @@ public class SymbolTable {
         throw new RuntimeException(String.format("Symbol \"%s\" cannot be found", name));
     }
 
+    public void RenameSymbol(String name, String newName, SymbolType type)
+    {
+        Map<String, Symbol> entries;
+        if (type == SymbolType.METHOD)
+            entries = this.methods;
+        else
+            entries = this.vars;
+
+        if (!entries.containsKey(name))
+        {
+            throw new RuntimeException(String.format("Symbol \"%s\" cannot be found", name));
+        }
+
+        Symbol symbol = entries.remove(name);
+        symbol.rename(newName);
+        entries.put(newName, symbol);
+    }
+
     public void RenameMethodInHierarchy(String name, String newName)
     {
-         if ((this.entries.containsKey(name)) &&
-             (this.entries.get(name).getType() == SymbolType.METHOD))
+        if (methods.containsKey(name))
         {
-            this.entries.get(name).rename(newName);
+            this.RenameSymbol(name, newName, SymbolType.METHOD);
         }
 
         if (this.parentSymbolTable != null)
             this.parentSymbolTable.RenameMethodInHierarchy(name, newName);
     }
 
-    public void RenameMethodInHierarchy(String name, String newName, int line)
-    {
-        // First, check if a method with that name was declared in the given line
-        // in the hierarchy        
+    public void RenameMethodIfRenamedInHierarchy(String name, String newName)
+    {     
         var symbolTable = this;
-        boolean shouldRename = false;
-
         while (symbolTable != null)
         {
-            if ((symbolTable.entries.containsKey(name)) &&
-                (symbolTable.entries.get(name).getType() == SymbolType.METHOD) &&
-                (symbolTable.entries.get(name).getLine() == line))
+            if ((symbolTable.methods.containsKey(newName)) &&
+                (symbolTable.methods.get(newName).wasRenamed()))
             {
-                // Found target method in hierarchy
-                shouldRename = true;
-                break;
+                this.RenameMethodInHierarchy(name, newName);
+                return;
             }
 
             symbolTable = symbolTable.parentSymbolTable;
-        }  
-        
-        if (shouldRename)
-        {
-            this.RenameMethodInHierarchy(name, newName);
         }
     }
 }

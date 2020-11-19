@@ -28,9 +28,7 @@ public class AstSymbolsVisitor implements Visitor {
     }
 
     private void CreateSymbolTable(AstNode node, SymbolTable parentSymbolTable, String className)
-    {
-        System.out.println("Creating a new symbol table");
-        
+    {        
         SymbolTable symbolTable;
         if (parentSymbolTable == null)
             symbolTable = new SymbolTable();
@@ -50,7 +48,6 @@ public class AstSymbolsVisitor implements Visitor {
 
     private void InsertSymbol(AstNode parent, String name, SymbolType type, AstNode node)
     {
-        System.out.println(String.format("Symbol: %s,\tType: %s", name, type.name()));
         var scopeSymbolTable = astSymbols.GetSymbolTableByNode(parent);
         scopeSymbolTable.InsertSymbol(name, type, node);
     }

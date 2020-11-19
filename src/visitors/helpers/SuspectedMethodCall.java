@@ -15,7 +15,6 @@ public class SuspectedMethodCall {
 
     public void resolve()
     {
-        System.out.println(symbol.getName());
         // If the symbol name has been updated, update the method call expression
         if (!methodCall.methodId().equals(symbol.getName()))
             methodCall.setMethodId(symbol.getName());
