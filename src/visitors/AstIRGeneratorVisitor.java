@@ -1,17 +1,21 @@
+import java.util.LinkedList;
 import ast.*;
+import ir.*;
+import symbol.AstSymbols;
 
 public class AstIRGeneratorVisitor implements Visitor {
+    private AstSymbols astSymbols;
     private IRGenerator irGenerator;
 
-    public AstIRGeneratorVisitor()
+    public AstIRGeneratorVisitor(AstSymbols astSymbols)
     {
+        this.astSymbols = astSymbols;
         this.irGenerator = new IRGenerator();
     }
 
     public String getString()
     {
-        // TODO: Return the generated IR
-        return "";
+        return irGenerator.getString();
     }
 
     @Override
@@ -40,6 +44,10 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
+        String methodName = methodDecl.name();
+        String retType = "i32";
+        this.irGenerator.openScope(methodName, retType, new LinkedList<IRType>());
+
         methodDecl.returnType().accept(this);
         
         for (var formal : methodDecl.formals()) {

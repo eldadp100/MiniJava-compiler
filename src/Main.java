@@ -39,9 +39,15 @@ public class Main {
                     throw new UnsupportedOperationException("TODO - Ex. 3");
 
                 } else if (action.equals("compile")) {
-                    AstIRGeneratorVisitor irGeneratorVisitor = new AstIRGeneratorVisitor();
-                    //irGeneratorVisitor.visit(prog);
+                    AstSymbolsVisitor astSymbols = new AstSymbolsVisitor();
+                    astSymbols.visit(prog);
+
+                    AstIRGeneratorVisitor irGeneratorVisitor = new AstIRGeneratorVisitor(
+                        astSymbols.GetAstSymbolTable()
+                    );
+                    irGeneratorVisitor.visit(prog);
                     outFile.write(irGeneratorVisitor.getString());
+
                 } else if (action.equals("rename")) {
                     var type = args[2];
                     var originalName = args[3];
