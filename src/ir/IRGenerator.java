@@ -1,38 +1,42 @@
 import java.util.List;
+import java.util.LinkedList;
 import symbol.AstSymbols;
 import ir.*;
 
-public class IRGenerator {
-    private StringBuilder irStringBuilder = new StringBuilder();
-
-    public IRGenerator()
-    {
-        initIRStringBuilder();
-    }
+public class IRGenerator
+{
+    private List<IRClass> irClasses = new LinkedList<>();
 
     public String getString()
     {
-        return irStringBuilder.toString();
+        StringBuilder generatedIR = new StringBuilder();
+
+        // Classes' VTable
+        for (var classIR : irClasses) {
+            generatedIR.append(classIR.getVTableIR());
+        }
+
+        // Imported functions
+        generatedIR.append(getImportsIR());
+
+        // Classes' methods
+        for (var classIR : irClasses) {
+            generatedIR.append(classIR.getClassIR());
+        }
+
+        return generatedIR.toString();
     }
 
-    private void initIRStringBuilder()
+    private String getImportsIR()
     {
         // TODO: Add fixed stuff, such as imported functions
+        return "";
     }
 
-    public void openScope(String name, String retType, List<IRType> params)
+    public IRClass generateClass(String className)
     {
-        irStringBuilder.append(String.format("define %s @%s", retType, name));
-        irStringBuilder.append('(');
-        var iterator = params.listIterator();
-        while (iterator.hasNext())
-        {
-            var IRType = iterator.next();
-            irStringBuilder.append(String.format("%s %s", IRType.getType(), IRType.getName()));
-            if (iterator.hasNext())
-                irStringBuilder.append(", ");
-        }
-        irStringBuilder.append(')');
-        irStringBuilder.append(System.lineSeparator());
+        var irClass = new IRClass(className);
+        this.irClasses.add(irClass);
+        return irClass;
     }
 }

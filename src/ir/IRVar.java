@@ -1,8 +1,8 @@
-public class IRType {
+public class IRVar {
     private String name;
     private String type;
 
-    public IRType(String name, String type)
+    public IRVar(String name, String type)
     {
         this.name = name;
         this.type = type;

@@ -6,6 +6,9 @@ import symbol.AstSymbols;
 public class AstIRGeneratorVisitor implements Visitor {
     private AstSymbols astSymbols;
     private IRGenerator irGenerator;
+    private IRClass currentIRClass;
+    private IRMethod currentIRMethod;
+    private String currentIRType;
 
     public AstIRGeneratorVisitor(AstSymbols astSymbols)
     {
@@ -29,6 +32,8 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(ClassDecl classDecl) {
+        this.currentIRClass = this.irGenerator.generateClass(classDecl.name());
+
         for (var fieldDecl : classDecl.fields()) {
             fieldDecl.accept(this);
         }
@@ -44,11 +49,10 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
-        String methodName = methodDecl.name();
-        String retType = "i32";
-        this.irGenerator.openScope(methodName, retType, new LinkedList<IRType>());
+        this.currentIRMethod = this.currentIRClass.generateMethod(methodDecl.name());
 
         methodDecl.returnType().accept(this);
+        this.currentIRMethod.setRetType(this.currentIRType);
         
         for (var formal : methodDecl.formals()) {
             formal.accept(this);
@@ -66,6 +70,7 @@ public class AstIRGeneratorVisitor implements Visitor {
     @Override
     public void visit(FormalArg formalArg) {
         formalArg.type().accept(this);
+        this.currentIRMethod.addParam(new IRVar("%."+formalArg.name(), this.currentIRType));
     }
 
     @Override
@@ -194,17 +199,21 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(IntAstType t) {
+        this.currentIRType = "i32";
     }
 
     @Override
     public void visit(BoolAstType t) {
+        this.currentIRType = "i1";
     }
 
     @Override
     public void visit(IntArrayAstType t) {
+        this.currentIRType = "i32*";
     }
 
     @Override
     public void visit(RefType t) {
+        this.currentIRType = "i8*";
     }
 }
