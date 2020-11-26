@@ -39,8 +39,9 @@ public class Main {
                     throw new UnsupportedOperationException("TODO - Ex. 3");
 
                 } else if (action.equals("compile")) {
-                    throw new UnsupportedOperationException("TODO - Ex. 2");
-
+                    AstIRGeneratorVisitor irGeneratorVisitor = new AstIRGeneratorVisitor();
+                    //irGeneratorVisitor.visit(prog);
+                    outFile.write(irGeneratorVisitor.getString());
                 } else if (action.equals("rename")) {
                     var type = args[2];
                     var originalName = args[3];
