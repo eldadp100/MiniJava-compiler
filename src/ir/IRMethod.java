@@ -9,6 +9,7 @@ public class IRMethod
     private String methodName;
     private String retType;
     private List<IRVar> params = new LinkedList<>();
+    private List<IRStatement> stmts = new LinkedList<>();
 
     public IRMethod(String className, String methodName)
     {
@@ -25,6 +26,11 @@ public class IRMethod
     public void addParam(IRVar param)
     {
         this.params.add(param);
+    }
+
+    public void addStatement(IRStatement stmt)
+    {
+        this.stmts.add(stmt);
     }
 
     public String getMethodType()
@@ -48,6 +54,9 @@ public class IRMethod
     {
         StringBuilder methodIR = new StringBuilder();
         methodIR.append(openScope());
+        for (var stmt: this.stmts) {
+            methodIR.append(stmt.toString());
+        }
         methodIR.append(closeScope());
         return methodIR.toString();
     }
