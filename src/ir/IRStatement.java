@@ -8,7 +8,7 @@ public class IRStatement {
     public void addAssignment(int lv_sym_var, String lv_type, int rv_reg) {
         // "store lv_type %_this.currentRegNum lv_type* lv_symbol_var"
         // String str = String.format("store %s %_%d %s* %s\n", lv_type, rv_reg, lv_type, lv_sym_var);
-        String str = String.format("store %s reg %d %s* %s\n", lv_type, rv_reg, lv_type, lv_sym_var);
+        String str = String.format("store %s reg %d %s* sym %d\n", lv_type, rv_reg, lv_type, lv_sym_var);
         stmt_str.append(str);
     }
 
@@ -42,7 +42,7 @@ public class IRStatement {
 
 	public void addJump(int to_label) {
         // String str = String.format("br label %%d\n", to_label);
-        String str = String.format("br label sym %d\n", to_label);
+        String str = String.format("br label %d\n", to_label);
         stmt_str.append(str);
     }
 
@@ -50,8 +50,19 @@ public class IRStatement {
         // String str = String.format("%_%d = add %s %_%d %_%d\n", to_reg, type, e1_reg, e2_reg);
         String str = String.format("reg %d = add %s reg %d reg %d\n", to_reg, type, e1_reg, e2_reg);
         stmt_str.append(str);
+    }	
+    
+    public void addSubstuction(int to_reg, String type, int e1_reg, int e2_reg) {
+        // String str = String.format("%_%d = add %s %_%d %_%d\n", to_reg, type, e1_reg, e2_reg);
+        String str = String.format("reg %d = sub %s reg %d reg %d\n", to_reg, type, e1_reg, e2_reg);
+        stmt_str.append(str);
 	}
-
+    public void addMult(int to_reg, String type, int e1_reg, int e2_reg) {
+        // String str = String.format("%_%d = add %s %_%d %_%d\n", to_reg, type, e1_reg, e2_reg);
+        String str = String.format("reg %d = mul %s reg %d reg %d\n", to_reg, type, e1_reg, e2_reg);
+        stmt_str.append(str);
+	}
+    
 	public void addNot(int expr_reg, int to_reg) {
         String str = String.format("reg %d = not reg %d\n", to_reg, to_reg, expr_reg); // TODO: it's not correct...
         stmt_str.append(str);
@@ -92,22 +103,40 @@ public class IRStatement {
         this.stmt_str.append("call void @throw_oob()"); 
     }
 
-	public void addStore(String assignType, int assignReg, String assigneeType, int assigneeReg) {
-        String str = String.format("store %s reg %d, %s %d \n", assignType,assignReg, assigneeType,assigneeReg); 
+	public void addStore(String assignType, int assignReg, String assigneeType, int assigneeSym) {
+        String str = String.format("store %s reg %d, %s sym %d \n", assignType,assignReg, assigneeType,assigneeSym); 
         stmt_str.append(str);        
 	}
 
-	public void addAnd(int int2_reg, int in1_reg, int to_reg) {
-        // [TODO]
+	public void addAnd(int in1_reg, int in2_reg, int to_reg) {
+        String str = String.format("reg %d = and reg %d, reg %d \n",to_reg, in1_reg, in2_reg); 
+        stmt_str.append(str); //[TODO] - not sure it's done like that
 	}
 
 	public void addLoadPtrAtIndex(int arr_ptr_reg, int shifted_by_one_index_reg, int output_reg) {
 	}
 
 	public void addAdditionByConstant(int shifted_by_one_index_reg, String string, int index_reg, int i) {
-	}
+        
+    }
 
 	public void addLoadPtr(int arr_ptr_reg, int arr_length_reg) {
+	}
+
+	public void addBool(int to_reg, int i) {
+        String str = String.format("reg %d = add i1 0, %d \n",to_reg, i); 
+        stmt_str.append(str);
+
+	}
+
+	public void addLoadSymVar(int symVar, String symVarType, int to_reg) {
+        String str = String.format("reg %d = load %s %s* sym %d \n",to_reg, symVarType, symVarType, symVar); 
+        stmt_str.append(str);
+	}
+
+	public void addFunctionCall(String func_name, int[] args_registers, String ret_type, int to_reg) {
+        // String str = String.format("reg %d = call %s %s(%s) %s* sym %d \n",to_reg, ret_type, func_name, args_registers.toString()); 
+        // stmt_str.append(str);
 	}
 
     

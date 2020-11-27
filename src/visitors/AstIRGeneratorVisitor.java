@@ -19,6 +19,7 @@ public class AstIRGeneratorVisitor implements Visitor {
     private int currentLabel = 0; // [TODO] change to free label
     private Map<String, Integer> var_name_to_sym_var = new HashMap<>(); 
     private Map<Integer, String> sym_var_to_type = new HashMap<>(); 
+    // private Map<Integer, String> reg_to_type = new HashMap<>(); // [TODO] fill and use it
 
     public AstIRGeneratorVisitor(AstSymbols astSymbols)
     {
@@ -92,7 +93,8 @@ public class AstIRGeneratorVisitor implements Visitor {
         varDecl.type().accept(this);
         this.var_name_to_sym_var.put(varDecl.name(), this.currentSymVarNum);
         this.sym_var_to_type.put(this.currentSymVarNum, this.currentIRType);
-        currentIRStatement.varDecl(this.currentSymVarNum++, this.currentIRType);
+        currentIRStatement.varDecl(this.currentSymVarNum, this.currentIRType);
+        this.currentSymVarNum++;
     }
 
     @Override
@@ -110,11 +112,16 @@ public class AstIRGeneratorVisitor implements Visitor {
         int cond_reg = this.currentRegNum;
         int if_label = this.currentLabel++;
         int else_label = this.currentLabel++;
+        int continueLabel = this.currentLabel++;
         currentIRStatement.addBranch(cond_reg, if_label, else_label);
         currentIRStatement.addLabel(if_label);
         ifStatement.thencase().accept(this);
+        currentIRStatement.addJump(continueLabel);
         currentIRStatement.addLabel(else_label);
         ifStatement.elsecase().accept(this);
+        currentIRStatement.addJump(continueLabel);
+        currentIRStatement.addLabel(continueLabel);
+
     }
 
     @Override
@@ -192,14 +199,24 @@ public class AstIRGeneratorVisitor implements Visitor {
     public void visit(SubtractExpr e) {
         // same as add
         e.e1().accept(this);
+        int e1_reg = this.currentRegNum;
         e.e2().accept(this);
+        int e2_reg = this.currentRegNum;
+        int to_reg = ++this.currentRegNum;
+        String type = "i32"; // [TODO: change it to other than i32 if needed]
+        currentIRStatement.addSubstuction(to_reg, type,  e1_reg, e2_reg);
     }
 
     @Override
     public void visit(MultExpr e) {
         // same as add
         e.e1().accept(this);
+        int e1_reg = this.currentRegNum;
         e.e2().accept(this);
+        int e2_reg = this.currentRegNum;
+        int to_reg = ++this.currentRegNum;
+        String type = "i32"; // [TODO: change it to other than i32 if needed]
+        currentIRStatement.addMult(to_reg, type,  e1_reg, e2_reg);
     }
 
     @Override
@@ -250,29 +267,46 @@ public class AstIRGeneratorVisitor implements Visitor {
     @Override
     public void visit(MethodCallExpr e) {       
         e.ownerExpr().accept(this);
-
+        
+        // registers to each argument
+        int[] args_registers = new int[e.actuals().size()];
+        int i = 0;
         for (Expr arg : e.actuals()) {
             arg.accept(this);
+            args_registers[i++] = this.currentRegNum;
         }
+        // TODO - need args type also, fix it - not done...
+        int to_reg = ++this.currentRegNum;
+        this.currentIRStatement.addFunctionCall(e.methodId(), args_registers, "unkown_type_fix_it_later", to_reg);
     }
 
     @Override
     public void visit(IntegerLiteralExpr e) {
-        int put_to_reg = this.currentRegNum++;
+        int put_to_reg = ++this.currentRegNum;
         int int_value = e.num();
         currentIRStatement.addConstantRegAssignment(put_to_reg, int_value);
     }
 
     @Override
     public void visit(TrueExpr e) {
+        int to_reg = ++this.currentRegNum;
+        currentIRStatement.addBool(to_reg, 1);
     }
 
     @Override
     public void visit(FalseExpr e) {
+        int to_reg = ++this.currentRegNum;
+        currentIRStatement.addBool(to_reg, 0);
     }
 
     @Override
     public void visit(IdentifierExpr e) {
+        if (this.var_name_to_sym_var.containsKey(e.id())) {
+            int to_reg = ++this.currentRegNum;
+            int symVar = this.var_name_to_sym_var.get(e.id());
+            String symVarType = this.sym_var_to_type.get(symVar);
+            this.currentIRStatement.addLoadSymVar(symVar, symVarType, to_reg);
+        }
     }
 
     public void visit(ThisExpr e) {
