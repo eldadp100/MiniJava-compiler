@@ -85,7 +85,6 @@ public class AstIRGeneratorVisitor implements Visitor {
     public void visit(FormalArg formalArg) {
         formalArg.type().accept(this);
         this.currentIRMethod.addParam(new IRVar("%."+formalArg.name(), this.currentIRType));
-        
     }
     
     @Override
@@ -193,10 +192,8 @@ public class AstIRGeneratorVisitor implements Visitor {
         int shifted_by_one_index_reg = ++this.currentRegNum;
         this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
         int arr_index_ptr_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLoadPtrAtIndexSym(array_ptr_reg, shifted_by_one_index_reg, arr_index_ptr_reg)
-        this.currentIRStatement.addStore("i32", rv_reg, "i32*", array_sym)
-        // [TODO] - check if done (implement addLoadPtrAtIndex with getlempter)
-  
+        this.currentIRStatement.addLoadPtrAtIndex(array_ptr_reg, shifted_by_one_index_reg, arr_index_ptr_reg);
+        this.currentIRStatement.addStore("i32", rv_reg, "i32*", array_sym);
     }
 
     @Override
@@ -306,11 +303,10 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addLoadPtrAtIndex(arr_ptr_reg, shifted_by_one_index_reg, output_reg_ptr);
         int output_reg = ++this.currentRegNum;
         this.currentIRStatement.addLoadVar(output_reg_ptr, "i32", output_reg);
-        // [TODO] - check if done (implement addLoadPtrAtIndex with getlempter)
     }
 
     @Override
-    public void visit(ArrayLengthExpr e) { // [TODO]
+    public void visit(ArrayLengthExpr e) {
         e.arrayExpr().accept(this);
         int array_ptr = this.currentRegNum;
         int output_reg = ++this.currentRegNum;
