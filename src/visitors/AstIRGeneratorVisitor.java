@@ -125,14 +125,30 @@ public class AstIRGeneratorVisitor implements Visitor {
     }
 
     @Override
-    public void visit(WhileStatement whileStatement) {
+    public void visit(WhileStatement whileStatement) { 
+        int while_label = this.currentLabel++;
+        int continue_label = this.currentLabel++;
+        int skip_label = this.currentLabel++;
+
+        currentIRStatement.addLabel(while_label);
+        
         whileStatement.cond().accept(this);
+        int cond_reg = this.currentRegNum;
+
+        currentIRStatement.addBranch(cond_reg, continue_label, skip_label);
+        currentIRStatement.addLabel(continue_label);
+
         whileStatement.body().accept(this);
+
+        currentIRStatement.addJump(while_label);
+        currentIRStatement.addLabel(skip_label);
     }
 
     @Override
     public void visit(SysoutStatement sysoutStatement) {
         sysoutStatement.arg().accept(this);
+        int print_reg = this.currentRegNum;
+        this.currentIRStatement.addPrint(print_reg);
     }
 
     @Override
@@ -145,9 +161,40 @@ public class AstIRGeneratorVisitor implements Visitor {
     }
 
     @Override
-    public void visit(AssignArrayStatement assignArrayStatement) {
-        assignArrayStatement.index().accept(this);
+    public void visit(AssignArrayStatement assignArrayStatement) { 
         assignArrayStatement.rv().accept(this);
+        int rv_reg = this.currentRegNum;
+        assignArrayStatement.index().accept(this);
+        int index_reg = this.currentRegNum;
+        int array_sym = this.var_name_to_sym_var.get(assignArrayStatement.lv());
+        
+        // define zero register
+        int minus_one_reg = ++this.currentRegNum;
+        this.currentIRStatement.addConstantRegAssignment(minus_one_reg, 0);
+
+        // check out of bounds exception:
+        int arr_length_reg = ++this.currentRegNum;
+        this.currentIRStatement.addLoadSymVar(array_sym, "i32", arr_length_reg);
+        int positive_OOB_reg = ++this.currentRegNum; // index > len
+        int negative_OOB_reg = ++this.currentRegNum; // index < 0
+        int OOB_label = this.currentLabel++;
+        int continue_label = this.currentLabel++;
+        this.currentIRStatement.addLt(index_reg, arr_length_reg, positive_OOB_reg); // index < len
+        this.currentIRStatement.addLt(minus_one_reg, index_reg, negative_OOB_reg); // -1 < index 
+        int OOB_reg = ++this.currentRegNum;
+        this.currentIRStatement.addAnd(positive_OOB_reg, negative_OOB_reg, OOB_reg);
+        this.currentIRStatement.addBranch(OOB_reg, continue_label, OOB_label);
+        this.currentIRStatement.addOutOfBoundException(OOB_label);
+        
+        // continue:
+        this.currentIRStatement.addLabel(continue_label);
+        int shifted_by_one_index_reg = ++this.currentRegNum;
+        this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
+        int arr_index_ptr_reg = ++this.currentRegNum;
+        this.currentIRStatement.addLoadPtrAtIndexSym(array_sym, shifted_by_one_index_reg, arr_index_ptr_reg)
+        this.currentIRStatement.addStore("i32", rv_reg, "i32*", array_sym)
+        // [TODO] - check if done (implement addLoadPtrAtIndex with getlempter)
+  
     }
 
     @Override
@@ -237,7 +284,7 @@ public class AstIRGeneratorVisitor implements Visitor {
 
         // check out of bounds exception:
         int arr_length_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLoadPtr(arr_ptr_reg, arr_length_reg); //getlempter- get array length that stored at first index 
+        this.currentIRStatement.addLoadVar(arr_ptr_reg, "i32", arr_length_reg);
         int positive_OOB_reg = ++this.currentRegNum; // index > len
         int negative_OOB_reg = ++this.currentRegNum; // index < 0
         int OOB_label = this.currentLabel++;
@@ -253,13 +300,15 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addLabel(continue_label);
         int shifted_by_one_index_reg = ++this.currentRegNum;
         this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
+        int output_reg_ptr = ++this.currentRegNum;
+        this.currentIRStatement.addLoadPtrAtIndex(arr_ptr_reg, shifted_by_one_index_reg, output_reg_ptr);
         int output_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLoadPtrAtIndex(arr_ptr_reg, shifted_by_one_index_reg, output_reg);
+        this.currentIRStatement.addLoadVar(output_reg_ptr, "i32", output_reg);
         // [TODO] - check if done (implement addLoadPtrAtIndex with getlempter)
     }
 
     @Override
-    public void visit(ArrayLengthExpr e) {
+    public void visit(ArrayLengthExpr e) { // [TODO]
         e.arrayExpr().accept(this);
     }
 
@@ -346,7 +395,7 @@ public class AstIRGeneratorVisitor implements Visitor {
     }
 
     @Override
-    public void visit(NewObjectExpr e) {
+    public void visit(NewObjectExpr e) { // [TODO?]
     }
 
     @Override
