@@ -64,8 +64,13 @@ public class AstIRGeneratorVisitor implements Visitor {
 
         methodDecl.returnType().accept(this);
         this.currentIRMethod.setRetType(this.currentIRType);
-        
-        for (var formal : methodDecl.formals()) { // should add them to start method (declare and stuff)
+
+        this.currentIRMethod.addParam(new IRVar("this", this.currentSymVarNum, "i8*")); // Adding "This" param
+        this.var_name_to_sym_var.put("this", this.currentSymVarNum);
+        this.sym_var_to_type.put(this.currentSymVarNum, "i8*");
+        this.currentSymVarNum++;
+
+        for (var formal : methodDecl.formals()) { 
             formal.accept(this);
         }
         for (var varDecl : methodDecl.vardecls()) {
@@ -82,9 +87,12 @@ public class AstIRGeneratorVisitor implements Visitor {
     }
 
     @Override
-    public void visit(FormalArg formalArg) {
+    public void visit(FormalArg formalArg) { // We are treating formal arguments like regular local variables. their names in the function decleration will be %.0, %.1 etc.
         formalArg.type().accept(this);
-        this.currentIRMethod.addParam(new IRVar("%."+formalArg.name(), this.currentIRType));
+        this.var_name_to_sym_var.put(formalArg.name(), this.currentSymVarNum);
+        this.sym_var_to_type.put(this.currentSymVarNum, this.currentIRType);
+        this.currentIRMethod.addParam(new IRVar(".%s".format(formalArg.name()), this.currentSymVarNum, this.currentIRType));
+        this.currentSymVarNum++;
     }
     
     @Override
@@ -372,10 +380,11 @@ public class AstIRGeneratorVisitor implements Visitor {
         // this.var_name_to_sym_var.put()
         // this.currentIRStatement.varDecl(array_sym_var, "i32*");
         e.lengthExpr().accept(this);
+        int length_reg = this.currentRegNum;
         int output_before_cast_reg = ++this.currentRegNum;
         int expr_output_reg = ++this.currentRegNum; // Q: why I put it here? (and not before accept)
-
-        int length_reg = this.currentRegNum;
+        int shifted_length_reg = ++this.currentRegNum;
+        
 
         // positivity handling:
         int length_positivity_reg = ++this.currentRegNum;
@@ -388,7 +397,8 @@ public class AstIRGeneratorVisitor implements Visitor {
         
         // continue:
         this.currentIRStatement.addLabel(continue_label);
-        this.currentIRStatement.addCaloc(output_before_cast_reg, length_reg, 4);
+        this.currentIRStatement.addAdditionByConstant(shifted_length_reg, "i32", length_reg, 1);
+        this.currentIRStatement.addCaloc(output_before_cast_reg, shifted_length_reg, 4);
         this.currentIRStatement.addCast(output_before_cast_reg, "i8*", expr_output_reg, "i32*");
 
         this.currentIRStatement.addStore("i32", length_reg ,"i32*", expr_output_reg); // store the size of the array to first index
@@ -396,7 +406,7 @@ public class AstIRGeneratorVisitor implements Visitor {
     }
 
     @Override
-    public void visit(NewObjectExpr e) { // [TODO?]
+    public void visit(NewObjectExpr e) {
     }
 
     @Override

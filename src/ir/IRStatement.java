@@ -19,6 +19,7 @@ public class IRStatement {
         stmt_str.append(str);
     }
 
+
 	public void addBranch(int cond_reg, int if_label, int else_label) {
         // String str = String.format("br i1 %_%d, label %%d, label %%d\n", cond_reg, if_label, else_label);
         String str = String.format("    br i1 %%_%d, label %%%d, label %%%d\n", cond_reg, if_label, else_label);
@@ -108,6 +109,12 @@ public class IRStatement {
         stmt_str.append(str);        
 	}
 
+    public void addStoreFormalArg(String assignType, String assignReg, String assigneeType, int assigneeSym) {
+        String str = String.format("    store %s %%%s, %s %%%d \n", assignType,assignReg, assigneeType,assigneeSym); 
+        stmt_str.append(str);        
+	}
+
+
 	public void addAnd(int in1_reg, int in2_reg, int to_reg) {
         String str = String.format("    %%_%d = and %%_%d, %%_%d \n",to_reg, in1_reg, in2_reg); 
         stmt_str.append(str); //[TODO] - not sure it's done like that
@@ -119,7 +126,8 @@ public class IRStatement {
     }
 
 	public void addAdditionByConstant(int to_reg, String type, int e1_reg, int constant) {
-        String str = String.format("    %%_%d = add %s %%_%d, %%_%d\n", to_reg, type, e1_reg, constant);
+        String str = String.format("    %%_%d = add %s %%_%d, %d\n", to_reg, type, e1_reg, constant);
+        stmt_str.append(str);
     }
 
 	public void addLoadPtr(int arr_ptr_reg, int to_reg) {
