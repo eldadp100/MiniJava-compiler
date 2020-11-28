@@ -12,7 +12,7 @@ public class AstIRGeneratorVisitor implements Visitor {
     private IRGenerator irGenerator;
     private IRClass currentIRClass;
     private IRMethod currentIRMethod;
-    private IRStatement currentIRStatement = new IRStatement();
+    private IRStatement currentIRStatement = new IRStatement(); // [TODO: remove it]
     private String currentIRType;
     private int currentRegNum = 0; // [TODO] change to last used reg num
     private int currentSymVarNum = 0; // [TODO] change to free sym var num
@@ -87,7 +87,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRMethod.addParam(new IRVar("%."+formalArg.name(), this.currentIRType));
         
     }
-
+    
     @Override
     public void visit(VarDecl varDecl) {
         varDecl.type().accept(this);
@@ -169,7 +169,6 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addJump(final_label);
         this.currentIRStatement.addLabel(final_label);
         this.currentIRStatement.addPhi(this.currentRegNum++,exist_false_label, e2_label);
-        
     }
 
     @Override
