@@ -167,6 +167,8 @@ public class AstIRGeneratorVisitor implements Visitor {
         assignArrayStatement.index().accept(this);
         int index_reg = this.currentRegNum;
         int array_sym = this.var_name_to_sym_var.get(assignArrayStatement.lv());
+        int array_ptr_reg = ++this.currentRegNum;
+        this.currentIRStatement.addLoadSymVar(array_sym, "i32*", array_ptr_reg);
         
         // define zero register
         int minus_one_reg = ++this.currentRegNum;
@@ -174,7 +176,7 @@ public class AstIRGeneratorVisitor implements Visitor {
 
         // check out of bounds exception:
         int arr_length_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLoadSymVar(array_sym, "i32", arr_length_reg);
+        this.currentIRStatement.addLoadVar(array_ptr_reg, "i32", arr_length_reg);
         int positive_OOB_reg = ++this.currentRegNum; // index > len
         int negative_OOB_reg = ++this.currentRegNum; // index < 0
         int OOB_label = this.currentLabel++;
@@ -191,7 +193,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         int shifted_by_one_index_reg = ++this.currentRegNum;
         this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
         int arr_index_ptr_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLoadPtrAtIndexSym(array_sym, shifted_by_one_index_reg, arr_index_ptr_reg)
+        this.currentIRStatement.addLoadPtrAtIndexSym(array_ptr_reg, shifted_by_one_index_reg, arr_index_ptr_reg)
         this.currentIRStatement.addStore("i32", rv_reg, "i32*", array_sym)
         // [TODO] - check if done (implement addLoadPtrAtIndex with getlempter)
   
@@ -310,6 +312,9 @@ public class AstIRGeneratorVisitor implements Visitor {
     @Override
     public void visit(ArrayLengthExpr e) { // [TODO]
         e.arrayExpr().accept(this);
+        int array_ptr = this.currentRegNum;
+        int output_reg = ++this.currentRegNum;
+        this.currentIRStatement.addLoadVar(array_ptr, "i32", output_reg);
     }
 
     @Override
