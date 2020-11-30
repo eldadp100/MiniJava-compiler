@@ -12,6 +12,7 @@ public class IRClass {
     private Map<String, IRMethod> irMethods = new HashMap<>(); 
     private List<IRClassField> irClassFields = new LinkedList<>();
     private List<String> Methods = new LinkedList<>();
+    private Map<String, List<String>> methods_to_formal_args_types = new HashMap<>(); 
 
     public IRClass(String className)
     {
@@ -28,13 +29,18 @@ public class IRClass {
         this.irClassFields.add(new IRClassField(fieldName,fieldType,fieldSize));
     }
 
-    public void addMethod(String MethodName) {
+    public void addMethod(String MethodName, List<String> formalTypes) {
         if (!this.containsMethod(MethodName)) {
             this.Methods.add(MethodName);
+            this.methods_to_formal_args_types.put(MethodName, formalTypes);
         }
     }
 
     public int getClassObjectSize() {
+        return this.getClassFieldsSize() + 8;
+    }
+
+    public int getClassFieldsSize() {
         int size = 0;
         if (superClass != null) { 
             size = superClass.getClassObjectSize();
@@ -44,6 +50,7 @@ public class IRClass {
         }
         return size;
     }
+
 
     public int getObjectLocation(String ObjectName) {
         int location = 8;
@@ -91,7 +98,7 @@ public class IRClass {
     public String getVTableIR() // FIX
     {
         var classDef = new StringBuilder();
-        classDef.append(String.format("@.%s_vtable = global [%d x i8*] ", className, this.irMethods.size()));
+        classDef.append(String.format("%s = global %s ", this.getVtableName(), this.getVtableType()));
         classDef.append('[');
         classDef.append(System.lineSeparator());
         int numMethods = this.numberOfMethods();
@@ -129,6 +136,16 @@ public class IRClass {
         return superClass.getIRMethod(methodName);
     }
 
+    public List<String> getMethodFormalTypes(String methodName) {
+        if (this.methods_to_formal_args_types.containsKey(methodName)) {
+            return this.methods_to_formal_args_types.get(methodName);
+        }
+        if (superClass == null) {
+            throw new RuntimeException("Method not in class!");
+        }
+        return superClass.getMethodFormalTypes(methodName);
+    }
+
     public boolean containsMethod(String methodName) {
         boolean sup = false;
         if (superClass != null) {
@@ -154,5 +171,13 @@ public class IRClass {
         } else {
             return Methods.get(j);
         }
+    }
+
+    public String getVtableName() {
+        return String.format("@.%s_vtable", className);
+    }
+
+    public String getVtableType() {
+        return String.format("[%d x i8*]", this.irMethods.size());
     }
 }

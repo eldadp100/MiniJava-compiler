@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import ast.*;
@@ -13,8 +14,8 @@ public class AstIRClassGeneratorVisitor implements Visitor {
     private String currentIRType;
     private String current_variable_type;
     private int current_variable_size;
+    private List<String> FormalArgsTypes;
 
-    // private Map<Integer, String> reg_to_type = new HashMap<>(); // [TODO] fill and use it
 
     public AstIRClassGeneratorVisitor()
     {
@@ -64,7 +65,15 @@ public class AstIRClassGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
-        this.currentIRClass.addMethod(methodDecl.name());
+
+        FormalArgsTypes = new LinkedList<>();
+
+        for (var formal : methodDecl.formals()) { 
+            formal.accept(this);
+            FormalArgsTypes.add(this.currentIRType);
+        }
+
+        this.currentIRClass.addMethod(methodDecl.name(), FormalArgsTypes);
     }
 
     @Override

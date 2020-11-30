@@ -6,6 +6,7 @@ import ast.*;
 import ir.*;
 import symbol.AstSymbols;
 import symbol.SymbolTable;
+import symbol.SymbolType;
 
 public class AstIRGeneratorVisitor implements Visitor {
     private AstSymbols astSymbols;
@@ -19,7 +20,8 @@ public class AstIRGeneratorVisitor implements Visitor {
     private int currentLabel = 0; // [TODO] change to free label
     private Map<String, Integer> var_name_to_sym_var = new HashMap<>(); 
     private Map<Integer, String> sym_var_to_type = new HashMap<>(); 
-    private Map<String, IRClass> class_to_IRclass = new HashMap<>(); 
+    private Map<String, IRClass> class_to_IRclass = new HashMap<>();
+    private IRClass LastVarClass;
     // private Map<Integer, String> reg_to_type = new HashMap<>(); // [TODO] fill and use it
 
     public AstIRGeneratorVisitor(AstSymbols astSymbols, IRGenerator irGenerator)
@@ -74,6 +76,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         for (var formal : methodDecl.formals()) { 
             formal.accept(this);
         }
+
         for (var varDecl : methodDecl.vardecls()) {
             this.currentIRStatement = new IRStatement();
             varDecl.accept(this);
@@ -325,7 +328,14 @@ public class AstIRGeneratorVisitor implements Visitor {
     @Override
     public void visit(MethodCallExpr e) {       
         e.ownerExpr().accept(this);
-        
+        int owner_reg = this.currentRegNum;
+        int object_ptr_reg = ++this.currentRegNum;
+        int object_bitcast_otr_reg = ++this.currentRegNum;
+        int vtable_ptr_reg = ++this.currentRegNum;
+        int ptr_to_func_in_vtable = ++this.currentRegNum;
+        int func_ptr_reg = ++this.currentRegNum;
+        int bitcast_func_reg = ++this.currentRegNum;
+
         // registers to each argument
         int[] args_registers = new int[e.actuals().size()];
         int i = 0;
@@ -335,6 +345,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         }
         // TODO - need args type also, fix it - not done...
         int to_reg = ++this.currentRegNum;
+        int func_call_output_reg = ++this.currentRegNum;
         this.currentIRStatement.addFunctionCall(e.methodId(), args_registers, "unkown_type_fix_it_later", to_reg);
     }
 
@@ -364,10 +375,18 @@ public class AstIRGeneratorVisitor implements Visitor {
             int symVar = this.var_name_to_sym_var.get(e.id());
             String symVarType = this.sym_var_to_type.get(symVar);
             this.currentIRStatement.addLoadSymVar(symVar, symVarType, to_reg);
+
+            // The line below 
+            String ObjectClass = astSymbols.GetRefTypeName(this.astSymbols.GetSymbol(e, e.id(), SymbolType.VAR).getStaticType());
+            
+            System.out.println(String.format("Class: %s", ObjectClass));
+            this.LastVarClass = this.irGenerator.getClass(ObjectClass);
+
         }
     }
 
     public void visit(ThisExpr e) {
+        this.LastVarClass = this.currentIRClass;
     }
 
     @Override
@@ -408,7 +427,22 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(NewObjectExpr e) {
-        
+        IRClass ObjectClass = this.irGenerator.getClass(e.classId());
+        this.LastVarClass = ObjectClass;
+        int object_size_reg = ++this.currentRegNum;
+        int one_reg = ++this.currentRegNum;
+        int bitcast_calloc_reg = ++this.currentRegNum;
+        int pointer_to_vtable_reg = ++this.currentRegNum;
+        int calloc_reg = ++this.currentRegNum;
+
+        this.currentIRStatement.blankLine();
+        this.currentIRStatement.addConstantRegAssignment(object_size_reg, ObjectClass.getClassObjectSize());
+        this.currentIRStatement.addConstantRegAssignment(one_reg, 1);
+        this.currentIRStatement.addCaloc(calloc_reg, one_reg, object_size_reg);
+        this.currentIRStatement.addCast(calloc_reg, "i8*", bitcast_calloc_reg, "i8***");
+        this.currentIRStatement.addLoadPtrStaticArray(ObjectClass.getVtableName(), ObjectClass.getVtableType(), pointer_to_vtable_reg);
+        this.currentIRStatement.addStoreReg("i8**", pointer_to_vtable_reg, "i8***", bitcast_calloc_reg);
+        this.currentIRStatement.blankLine();
     }
 
     @Override

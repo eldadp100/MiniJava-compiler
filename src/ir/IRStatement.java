@@ -109,6 +109,11 @@ public class IRStatement {
         stmt_str.append(str);        
 	}
 
+    public void addStoreReg(String assignType, int assignReg, String assigneeType, int assigneeReg) {
+        String str = String.format("    store %s %%_%d, %s %%_%d \n", assignType,assignReg, assigneeType,assigneeReg); 
+        stmt_str.append(str);        
+	}
+
     public void addStoreFormalArg(String assignType, String assignReg, String assigneeType, int assigneeSym) {
         String str = String.format("    store %s %%%s, %s %%%d \n", assignType,assignReg, assigneeType,assigneeSym); 
         stmt_str.append(str);        
@@ -135,6 +140,12 @@ public class IRStatement {
         stmt_str.append(str);
 	}
 
+    public void addLoadPtrStaticArray(String static_array, String static_array_type, int to_reg) {
+        String str = String.format("    %%_%d = getelementptr %s, %s* %s, i32 0 \n",to_reg, static_array_type,static_array_type,static_array); 
+        stmt_str.append(str);
+	}
+
+
 	public void addBool(int to_reg, int i) {
         String str = String.format("    %%_%d = add i1 0, %d \n",to_reg, i); 
         stmt_str.append(str);
@@ -155,6 +166,11 @@ public class IRStatement {
         String str = String.format("    call void (i32) @print_int(i32 %%_%d) \n", register_to_print);
         stmt_str.append(str);
 	}
+
+    public void blankLine() { // For Testing!
+        stmt_str.append("\n");
+	}
+
     
 
 }
