@@ -17,6 +17,10 @@ public class IRMethod
         this.methodName = methodName;
         // this.params.add(new IRVar("%this", "i8*"));
     }
+    
+    public String getName() {
+        return methodName;
+    }
 
     public void setRetType(String retType)
     {

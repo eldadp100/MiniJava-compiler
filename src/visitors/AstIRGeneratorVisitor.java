@@ -19,12 +19,13 @@ public class AstIRGeneratorVisitor implements Visitor {
     private int currentLabel = 0; // [TODO] change to free label
     private Map<String, Integer> var_name_to_sym_var = new HashMap<>(); 
     private Map<Integer, String> sym_var_to_type = new HashMap<>(); 
+    private Map<String, IRClass> class_to_IRclass = new HashMap<>(); 
     // private Map<Integer, String> reg_to_type = new HashMap<>(); // [TODO] fill and use it
 
-    public AstIRGeneratorVisitor(AstSymbols astSymbols)
+    public AstIRGeneratorVisitor(AstSymbols astSymbols, IRGenerator irGenerator)
     {
         this.astSymbols = astSymbols;
-        this.irGenerator = new IRGenerator();
+        this.irGenerator = irGenerator;
     }
 
     public String getString()
@@ -43,7 +44,7 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(ClassDecl classDecl) {
-        this.currentIRClass = this.irGenerator.generateClass(classDecl.name());
+        this.currentIRClass = this.irGenerator.getClass(classDecl.name());
 
         for (var fieldDecl : classDecl.fields()) {
             fieldDecl.accept(this);
@@ -407,6 +408,7 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(NewObjectExpr e) {
+        
     }
 
     @Override
