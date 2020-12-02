@@ -73,7 +73,7 @@ public class IRMethod
         methodDef.append('(');
         var iterator = params.listIterator();
         var thisVar = iterator.next();
-        methodDef.append(String.format("%s %%%d", thisVar.getType(), thisVar.getNumber()));
+        methodDef.append(String.format("%s %%_%d", thisVar.getType(), thisVar.getNumber()));
 
         while (iterator.hasNext())
         {

@@ -15,6 +15,11 @@ public class IRStatement {
         stmt_str.append(str);
     }
 
+    public void addAssignmentToReg(int lv_reg, String lv_type, int rv_reg) {
+        String str = String.format("    store %s %%_%d %s* %%_%d\n", lv_type, rv_reg, lv_type, lv_reg);
+        stmt_str.append(str);
+    }
+
     public void varDecl(int sym_var, String var_type) {
         // " %this.currentSymVarNum = alloca get_type_from_symbol_table
         // String str = String.format("%%d = alloca %s\n", sym_var, var_type);
@@ -189,6 +194,10 @@ public class IRStatement {
         stmt_str.append("\n");
 	}
 
-    
+    public void addReturn(String type, int reg) {
+        String str = String.format("    ret %s %%_%d\n", type, reg);
+        stmt_str.append(str);
+	}
+
 
 }

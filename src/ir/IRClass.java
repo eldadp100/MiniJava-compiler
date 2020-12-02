@@ -56,17 +56,36 @@ public class IRClass {
 
     public int getObjectLocation(String ObjectName) {
         int location = 8;
-        if (superClass != null) { 
-            location = location + superClass.getClassObjectSize();
-        }
+        int s = 0;
         for (var Field : irClassFields) {
-            if (Field.getName() == ObjectName) {
-                return location;
+            if (Field.getName().equals(ObjectName)) {
+                if (superClass != null) {
+                    s = superClass.getClassObjectSize();
+                }
+                return location + s;
             }
             location = location + Field.getSize();
         }
+
+        if (superClass != null) { 
+            return superClass.getObjectLocation(ObjectName);
+        }
         throw new RuntimeException("Field is not part of the class!");
     }
+
+    public String getFieldType(String ObjectName) {
+        for (var Field : irClassFields) {
+            if (Field.getName().equals(ObjectName)) {
+                return Field.getType();
+            }
+        }
+        if (superClass != null) { 
+            return superClass.getFieldType(ObjectName);
+        }
+        throw new RuntimeException("Field is not part of the class!");
+    }
+
+
 
     public int getMethodVtableIndex(String MethodName) {
         if (this.Methods.contains(MethodName)) {

@@ -19,10 +19,11 @@ public class AstIRGeneratorVisitor implements Visitor {
     private int currentRegNum = 0; // [TODO] change to last used reg num
     private int currentSymVarNum = 0; // [TODO] change to free sym var num
     private int currentLabel = 0; // [TODO] change to free label
-    private Map<String, Integer> var_name_to_sym_var = new HashMap<>(); 
-    private Map<Integer, String> sym_var_to_type = new HashMap<>(); 
+    private Map<String, Integer> var_name_to_sym_var; 
+    private Map<Integer, String> sym_var_to_type;
     private Map<String, IRClass> class_to_IRclass = new HashMap<>();
     private IRClass LastVarClass;
+    private int this_reg;
     // private Map<Integer, String> reg_to_type = new HashMap<>(); // [TODO] fill and use it
 
     public AstIRGeneratorVisitor(AstSymbols astSymbols, IRGenerator irGenerator)
@@ -34,6 +35,15 @@ public class AstIRGeneratorVisitor implements Visitor {
     public String getString()
     {
         return irGenerator.getString();
+    }
+
+    public void getFieldReg(String fieldName) {
+        int index_reg = ++this.currentRegNum;
+        int to_reg_before_bitcast = ++this.currentRegNum;
+        int to_reg = ++this.currentRegNum; 
+        this.currentIRStatement.addConstantRegAssignment(index_reg, this.currentIRClass.getObjectLocation(fieldName));
+        this.currentIRStatement.addLoadPtrAtIndex(this_reg, index_reg, to_reg_before_bitcast, "i8");
+        this.currentIRStatement.addCast(to_reg_before_bitcast, "i8*", to_reg, String.format("%s*",this.currentIRClass.getFieldType(fieldName)));
     }
 
     @Override
@@ -49,9 +59,14 @@ public class AstIRGeneratorVisitor implements Visitor {
     public void visit(ClassDecl classDecl) {
         this.currentIRClass = this.irGenerator.getClass(classDecl.name());
 
-        for (var fieldDecl : classDecl.fields()) {
-            fieldDecl.accept(this);
-        }
+        this.sym_var_to_type = new HashMap<>();
+        this.var_name_to_sym_var = new HashMap<>();
+        this.currentRegNum = 0;
+        this.currentSymVarNum = 0;
+
+        //for (var fieldDecl : classDecl.fields()) {
+        //    fieldDecl.accept(this);
+        //}
         for (var methodDecl : classDecl.methoddecls()) {
             methodDecl.accept(this);
         }
@@ -69,11 +84,8 @@ public class AstIRGeneratorVisitor implements Visitor {
         methodDecl.returnType().accept(this);
         this.currentIRMethod.setRetType(this.currentIRType);
 
-        this.currentIRMethod.addParam(new IRVar("this", this.currentSymVarNum, "i8*")); // Adding "This" param
-        this.var_name_to_sym_var.put("this", this.currentSymVarNum);
-        this.sym_var_to_type.put(this.currentSymVarNum, "i8*");
-        this.currentSymVarNum++;
-
+        this.currentIRMethod.addParam(new IRVar("this", this.currentRegNum, "i8*")); // Adding "This" param
+        this_reg = this.currentRegNum;
         for (var formal : methodDecl.formals()) { 
             formal.accept(this);
         }
@@ -89,6 +101,8 @@ public class AstIRGeneratorVisitor implements Visitor {
             this.currentIRMethod.addStatement(this.currentIRStatement);
         }
         methodDecl.ret().accept(this);
+        int return_reg = this.currentRegNum;
+        this.currentIRStatement.addReturn(this.currentIRClass.getMethodRetType(methodDecl.name()), return_reg);
     }
 
     @Override
@@ -164,16 +178,22 @@ public class AstIRGeneratorVisitor implements Visitor {
     }
 
     @Override
-    public void visit(AssignStatement assignStatement) {
+    public void visit(AssignStatement assignStatement) { // !
         assignStatement.rv().accept(this);
         int rv_reg = this.currentRegNum;
-        int lv_sym_var = this.var_name_to_sym_var.get(assignStatement.lv());
-        String lv_type = this.sym_var_to_type.get(lv_sym_var);
-        this.currentIRStatement.addAssignment(lv_sym_var, lv_type, rv_reg);        
+        if (this.var_name_to_sym_var.containsKey(assignStatement.lv())) {
+            int lv_sym_var = this.var_name_to_sym_var.get(assignStatement.lv());
+            String lv_type = this.sym_var_to_type.get(lv_sym_var);
+            this.currentIRStatement.addAssignment(lv_sym_var, lv_type, rv_reg);
+        } else {
+            this.getFieldReg(assignStatement.lv());
+            int field_reg = this.currentRegNum;
+            this.currentIRStatement.addAssignmentToReg(field_reg, this.currentIRClass.getFieldType(assignStatement.lv()), rv_reg);
+        }    
     }
 
     @Override
-    public void visit(AssignArrayStatement assignArrayStatement) { 
+    public void visit(AssignArrayStatement assignArrayStatement) { // !
         assignArrayStatement.rv().accept(this);
         int rv_reg = this.currentRegNum;
         assignArrayStatement.index().accept(this);
@@ -394,6 +414,11 @@ public class AstIRGeneratorVisitor implements Visitor {
             
             this.LastVarClass = this.irGenerator.getClass(ObjectClass);
 
+        } else {
+            this.getFieldReg(e.id());
+            int field_ptr = this.currentRegNum;
+            int to_reg = ++this.currentRegNum;
+            this.currentIRStatement.addLoadVar(field_ptr, this.currentIRClass.getFieldType(e.id()), to_reg);
         }
     }
 
