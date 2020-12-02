@@ -377,7 +377,13 @@ public class AstIRGeneratorVisitor implements Visitor {
             this.currentIRStatement.addLoadSymVar(symVar, symVarType, to_reg);
 
             // The line below 
-            String ObjectClass = astSymbols.GetRefTypeName(this.astSymbols.GetSymbol(e, e.id(), SymbolType.VAR).getStaticType());
+            // String ObjectClass = astSymbols.GetRefTypeName(this.astSymbols.GetSymbol(e, e.id(), SymbolType.VAR).getStaticType());
+            var symbolTable = this.astSymbols.GetIdentifierScopeSymbolTable(e);
+            if (symbolTable == null) {
+                symbolTable = this.astSymbols.GetSymbolTableByNode(e);
+            }
+            var symbol = symbolTable.GetSymbol(e.id(), SymbolType.VAR);
+            String ObjectClass = astSymbols.GetRefTypeName(symbol.getStaticType());
             
             System.out.println(String.format("Class: %s", ObjectClass));
             this.LastVarClass = this.irGenerator.getClass(ObjectClass);
