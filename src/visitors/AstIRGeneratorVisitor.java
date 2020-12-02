@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import ast.*;
@@ -204,7 +205,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         int shifted_by_one_index_reg = ++this.currentRegNum;
         this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
         int arr_index_ptr_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLoadPtrAtIndex(array_ptr_reg, shifted_by_one_index_reg, arr_index_ptr_reg);
+        this.currentIRStatement.addLoadPtrAtIndex(array_ptr_reg, shifted_by_one_index_reg, arr_index_ptr_reg, "i32");
         this.currentIRStatement.addStore("i32", rv_reg, "i32*", array_sym);
     }
 
@@ -312,7 +313,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         int shifted_by_one_index_reg = ++this.currentRegNum;
         this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
         int output_reg_ptr = ++this.currentRegNum;
-        this.currentIRStatement.addLoadPtrAtIndex(arr_ptr_reg, shifted_by_one_index_reg, output_reg_ptr);
+        this.currentIRStatement.addLoadPtrAtIndex(arr_ptr_reg, shifted_by_one_index_reg, output_reg_ptr, "i32");
         int output_reg = ++this.currentRegNum;
         this.currentIRStatement.addLoadVar(output_reg_ptr, "i32", output_reg);
     }
@@ -329,24 +330,32 @@ public class AstIRGeneratorVisitor implements Visitor {
     public void visit(MethodCallExpr e) {       
         e.ownerExpr().accept(this);
         int owner_reg = this.currentRegNum;
-        int object_ptr_reg = ++this.currentRegNum;
-        int object_bitcast_otr_reg = ++this.currentRegNum;
+        int object_bitcast_ptr_reg = ++this.currentRegNum;
         int vtable_ptr_reg = ++this.currentRegNum;
+        int place_of_func_reg = ++this.currentRegNum;
         int ptr_to_func_in_vtable = ++this.currentRegNum;
         int func_ptr_reg = ++this.currentRegNum;
-        int bitcast_func_reg = ++this.currentRegNum;
+        int func_reg = ++this.currentRegNum;
 
+        this.currentIRStatement.addCast(owner_reg, "i8*", object_bitcast_ptr_reg, "i8***");
+        this.currentIRStatement.addLoadVar(object_bitcast_ptr_reg, "i8**",vtable_ptr_reg );
+        this.currentIRStatement.addConstantRegAssignment(place_of_func_reg, this.LastVarClass.getMethodVtableIndex(e.methodId()));
+        this.currentIRStatement.addLoadPtrAtIndex(vtable_ptr_reg, place_of_func_reg, ptr_to_func_in_vtable, "i8*");
+        this.currentIRStatement.addLoadVar(ptr_to_func_in_vtable, "i8*",func_ptr_reg );
+        this.currentIRStatement.addCast(func_ptr_reg, "i8*", func_reg, this.LastVarClass.getMethodPtrType(e.methodId()));
+        
         // registers to each argument
-        int[] args_registers = new int[e.actuals().size()];
-        int i = 0;
+        var FormalTypes = this.LastVarClass.getMethodFormalTypes(e.methodId());
+        List<Integer> args_registers = new LinkedList<>();
+        args_registers.add(owner_reg);
         for (Expr arg : e.actuals()) {
             arg.accept(this);
-            args_registers[i++] = this.currentRegNum;
+            args_registers.add(this.currentRegNum);
         }
-        // TODO - need args type also, fix it - not done...
-        int to_reg = ++this.currentRegNum;
+
         int func_call_output_reg = ++this.currentRegNum;
-        this.currentIRStatement.addFunctionCall(e.methodId(), args_registers, "unkown_type_fix_it_later", to_reg);
+        this.currentIRStatement.addFunctionCall(func_call_output_reg, this.LastVarClass.getMethodRetType(e.methodId()), func_reg, args_registers, FormalTypes);
+        this.currentIRStatement.blankLine();
     }
 
     @Override
@@ -376,8 +385,6 @@ public class AstIRGeneratorVisitor implements Visitor {
             String symVarType = this.sym_var_to_type.get(symVar);
             this.currentIRStatement.addLoadSymVar(symVar, symVarType, to_reg);
 
-            // The line below 
-            // String ObjectClass = astSymbols.GetRefTypeName(this.astSymbols.GetSymbol(e, e.id(), SymbolType.VAR).getStaticType());
             var symbolTable = this.astSymbols.GetIdentifierScopeSymbolTable(e);
             if (symbolTable == null) {
                 symbolTable = this.astSymbols.GetSymbolTableByNode(e);
@@ -385,7 +392,6 @@ public class AstIRGeneratorVisitor implements Visitor {
             var symbol = symbolTable.GetSymbol(e.id(), SymbolType.VAR);
             String ObjectClass = astSymbols.GetRefTypeName(symbol.getStaticType());
             
-            System.out.println(String.format("Class: %s", ObjectClass));
             this.LastVarClass = this.irGenerator.getClass(ObjectClass);
 
         }

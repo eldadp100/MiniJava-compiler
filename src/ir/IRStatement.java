@@ -1,4 +1,7 @@
 package ir;
+import java.util.List;
+import java.util.LinkedList;
+
 
 import symbol.SymbolTable;
 
@@ -73,8 +76,9 @@ public class IRStatement {
         String str = String.format("    %%_%d = icmp slt i32 %%_%d, %%_%d\n", to_reg, e1_reg, e2_reg); // [TODO: change i32 to general]
         stmt_str.append(str);
     }
+
     public void addLoadVar(int from_reg, String type, int to_reg) {
-        String str = String.format("    %%_%d = load %s, i32* %%_%d\n", to_reg, type, from_reg); // Validate that its correct
+        String str = String.format("    %%_%d = load %s, %s* %%_%d\n", to_reg, type, type, from_reg); // Validate that its correct
         stmt_str.append(str);
     }
 
@@ -125,8 +129,8 @@ public class IRStatement {
         stmt_str.append(str); //[TODO] - not sure it's done like that
 	}
 
-	public void addLoadPtrAtIndex(int arr_ptr_reg, int shifted_by_one_index_reg, int to_reg) {
-        String str = String.format("    %%_%d = getelementptr i32, i32* %%_%d, i32 %%_%d \n",to_reg, arr_ptr_reg, shifted_by_one_index_reg); 
+	public void addLoadPtrAtIndex(int arr_ptr_reg, int shifted_by_one_index_reg, int to_reg, String type) {
+        String str = String.format("    %%_%d = getelementptr %s, %s* %%_%d, i32 %%_%d \n",to_reg, type, type, arr_ptr_reg, shifted_by_one_index_reg); 
         stmt_str.append(str);
     }
 
@@ -157,9 +161,23 @@ public class IRStatement {
         stmt_str.append(str);
 	}
 
-	public void addFunctionCall(String func_name, int[] args_registers, String ret_type, int to_reg) {
+	public void addFunctionCall(int to_reg, String ret_type, int func_reg, List<Integer> args, List<String> types) {
+        
+        StringBuilder formalArgs = new StringBuilder();
+        var argsIter = args.listIterator();
+        var typesIter = types.listIterator();
+        while (argsIter.hasNext())
+        {
+            Integer arg = argsIter.next();
+            String type = typesIter.next();
+            formalArgs.append(String.format("%s %%_%d", type, arg));
+            if (argsIter.hasNext())
+                formalArgs.append(", ");
+        }
+        
+        String str = String.format("    %%_%d = call %s %%_%d(%s)\n",to_reg, ret_type, func_reg, formalArgs.toString());
         // String str = String.format("%%_%d = call %s %s(%s) %s* %%%d \n",to_reg, ret_type, func_name, args_registers.toString()); 
-        // stmt_str.append(str);
+        stmt_str.append(str);
 	}
 
     public void addPrint(int register_to_print) {

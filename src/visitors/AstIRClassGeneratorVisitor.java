@@ -66,14 +66,18 @@ public class AstIRClassGeneratorVisitor implements Visitor {
     @Override
     public void visit(MethodDecl methodDecl) {
 
+        methodDecl.returnType().accept(this);
+        String ret_type = this.currentIRType;
+
         FormalArgsTypes = new LinkedList<>();
+        FormalArgsTypes.add("i8*");
 
         for (var formal : methodDecl.formals()) { 
             formal.accept(this);
             FormalArgsTypes.add(this.currentIRType);
         }
 
-        this.currentIRClass.addMethod(methodDecl.name(), FormalArgsTypes);
+        this.currentIRClass.addMethod(methodDecl.name(), FormalArgsTypes, ret_type);
     }
 
     @Override

@@ -13,6 +13,7 @@ public class IRClass {
     private List<IRClassField> irClassFields = new LinkedList<>();
     private List<String> Methods = new LinkedList<>();
     private Map<String, List<String>> methods_to_formal_args_types = new HashMap<>(); 
+    private Map<String, String> methods_to_return_type = new HashMap<>(); 
 
     public IRClass(String className)
     {
@@ -29,10 +30,11 @@ public class IRClass {
         this.irClassFields.add(new IRClassField(fieldName,fieldType,fieldSize));
     }
 
-    public void addMethod(String MethodName, List<String> formalTypes) {
+    public void addMethod(String MethodName, List<String> formalTypes, String ret_type) {
         if (!this.containsMethod(MethodName)) {
             this.Methods.add(MethodName);
             this.methods_to_formal_args_types.put(MethodName, formalTypes);
+            this.methods_to_return_type.put(MethodName, ret_type);
         }
     }
 
@@ -179,5 +181,32 @@ public class IRClass {
 
     public String getVtableType() {
         return String.format("[%d x i8*]", this.irMethods.size());
+    }
+
+    public String getMethodPtrType(String methodName) {
+        StringBuilder formalTypesStr = new StringBuilder();
+        var formalTypes = this.getMethodFormalTypes(methodName);
+        var iterator = formalTypes.listIterator();
+        while (iterator.hasNext())
+        {
+            var irVar = iterator.next();
+            formalTypesStr.append(irVar);
+            if (iterator.hasNext()) {
+                formalTypesStr.append(", ");
+            }
+        }
+        formalTypesStr.append(")*");
+        return formalTypesStr.toString();
+
+    }
+
+    public String getMethodRetType(String methodName) {
+        if (this.methods_to_return_type.containsKey(methodName)) {
+            return this.methods_to_return_type.get(methodName);
+        }
+        if (superClass == null) {
+            throw new RuntimeException("Method not in class!");
+        }
+        return superClass.getMethodRetType(methodName);
     }
 }
