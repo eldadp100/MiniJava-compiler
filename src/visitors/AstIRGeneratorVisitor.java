@@ -58,12 +58,6 @@ public class AstIRGeneratorVisitor implements Visitor {
     @Override
     public void visit(ClassDecl classDecl) {
         this.currentIRClass = this.irGenerator.getClass(classDecl.name());
-
-        this.sym_var_to_type = new HashMap<>();
-        this.var_name_to_sym_var = new HashMap<>();
-        this.currentRegNum = 0;
-        this.currentSymVarNum = 0;
-
         //for (var fieldDecl : classDecl.fields()) {
         //    fieldDecl.accept(this);
         //}
@@ -79,6 +73,12 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
+
+        this.sym_var_to_type = new HashMap<>();
+        this.var_name_to_sym_var = new HashMap<>();
+        this.currentRegNum = 0;
+        this.currentSymVarNum = 0;
+
         this.currentIRMethod = this.currentIRClass.generateMethod(methodDecl.name());
 
         methodDecl.returnType().accept(this);
@@ -89,7 +89,6 @@ public class AstIRGeneratorVisitor implements Visitor {
         for (var formal : methodDecl.formals()) { 
             formal.accept(this);
         }
-
         for (var varDecl : methodDecl.vardecls()) {
             this.currentIRStatement = new IRStatement();
             varDecl.accept(this);
@@ -100,9 +99,11 @@ public class AstIRGeneratorVisitor implements Visitor {
             stmt.accept(this);
             this.currentIRMethod.addStatement(this.currentIRStatement);
         }
+        this.currentIRStatement = new IRStatement();
         methodDecl.ret().accept(this);
         int return_reg = this.currentRegNum;
         this.currentIRStatement.addReturn(this.currentIRClass.getMethodRetType(methodDecl.name()), return_reg);
+        this.currentIRMethod.addStatement(this.currentIRStatement);
     }
 
     @Override
@@ -198,10 +199,17 @@ public class AstIRGeneratorVisitor implements Visitor {
         int rv_reg = this.currentRegNum;
         assignArrayStatement.index().accept(this);
         int index_reg = this.currentRegNum;
-        int array_sym = this.var_name_to_sym_var.get(assignArrayStatement.lv());
-        int array_ptr_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLoadSymVar(array_sym, "i32*", array_ptr_reg);
-        
+        int array_ptr_reg;
+
+        if (this.var_name_to_sym_var.containsKey(assignArrayStatement.lv())) {
+            int array_sym = this.var_name_to_sym_var.get(assignArrayStatement.lv());
+            array_ptr_reg = ++this.currentRegNum;
+            this.currentIRStatement.addLoadSymVar(array_sym, "i32*", array_ptr_reg);
+        } else {
+            this.getFieldReg(assignArrayStatement.lv());
+            array_ptr_reg = this.currentRegNum;
+        }
+            
         // define zero register
         int minus_one_reg = ++this.currentRegNum;
         this.currentIRStatement.addConstantRegAssignment(minus_one_reg, 0);
@@ -226,7 +234,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
         int arr_index_ptr_reg = ++this.currentRegNum;
         this.currentIRStatement.addLoadPtrAtIndex(array_ptr_reg, shifted_by_one_index_reg, arr_index_ptr_reg, "i32");
-        this.currentIRStatement.addStore("i32", rv_reg, "i32*", array_sym);
+        this.currentIRStatement.addStoreReg("i32", rv_reg, "i32*", arr_index_ptr_reg);
     }
 
     @Override
@@ -365,6 +373,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addCast(func_ptr_reg, "i8*", func_reg, this.LastVarClass.getMethodPtrType(e.methodId()));
         
         // registers to each argument
+        String ret_type = this.LastVarClass.getMethodRetType(e.methodId());
         var FormalTypes = this.LastVarClass.getMethodFormalTypes(e.methodId());
         List<Integer> args_registers = new LinkedList<>();
         args_registers.add(owner_reg);
@@ -374,7 +383,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         }
 
         int func_call_output_reg = ++this.currentRegNum;
-        this.currentIRStatement.addFunctionCall(func_call_output_reg, this.LastVarClass.getMethodRetType(e.methodId()), func_reg, args_registers, FormalTypes);
+        this.currentIRStatement.addFunctionCall(func_call_output_reg,ret_type , func_reg, args_registers, FormalTypes);
         this.currentIRStatement.blankLine();
     }
 
