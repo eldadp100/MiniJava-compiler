@@ -68,7 +68,9 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(MainClass mainClass) {
+        this.currentIRStatement = new IRStatement();
         mainClass.mainStatement().accept(this);
+        this.irGenerator.setMainStatement(this.currentIRStatement);
     }
 
     @Override
