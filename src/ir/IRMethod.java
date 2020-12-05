@@ -9,12 +9,17 @@ public class IRMethod
     private String methodName;
     private String retType;
     private List<IRVar> params = new LinkedList<>();
+    private List<IRStatement> stmts = new LinkedList<>();
 
     public IRMethod(String className, String methodName)
     {
         this.className = className;
         this.methodName = methodName;
-        this.params.add(new IRVar("%this", "i8*"));
+        // this.params.add(new IRVar("%this", "i8*"));
+    }
+    
+    public String getName() {
+        return methodName;
     }
 
     public void setRetType(String retType)
@@ -25,6 +30,11 @@ public class IRMethod
     public void addParam(IRVar param)
     {
         this.params.add(param);
+    }
+
+    public void addStatement(IRStatement stmt)
+    {
+        this.stmts.add(stmt);
     }
 
     public String getMethodType()
@@ -48,6 +58,10 @@ public class IRMethod
     {
         StringBuilder methodIR = new StringBuilder();
         methodIR.append(openScope());
+        methodIR.append(declareFormalArguments());
+        for (var stmt: this.stmts) {
+            methodIR.append(stmt.toString());
+        }
         methodIR.append(closeScope());
         return methodIR.toString();
     }
@@ -58,16 +72,32 @@ public class IRMethod
         methodDef.append(String.format("define %s @%s.%s", retType, className, methodName));
         methodDef.append('(');
         var iterator = params.listIterator();
+        var thisVar = iterator.next();
+        methodDef.append(String.format("%s %%_%d", thisVar.getType(), thisVar.getNumber()));
+
         while (iterator.hasNext())
         {
+            methodDef.append(", ");
             var irVar = iterator.next();
-            methodDef.append(String.format("%s %s", irVar.getType(), irVar.getName()));
-            if (iterator.hasNext())
-                methodDef.append(", ");
+            methodDef.append(String.format("%s %%.%d", irVar.getType(), irVar.getNumber()));
         }
         methodDef.append(") {");
         methodDef.append(System.lineSeparator());
         return methodDef.toString();
+    }
+
+    private String declareFormalArguments()
+    {
+        IRStatement formalArgsDec = new IRStatement();
+        var iterator = params.listIterator();
+        iterator.next();
+        while (iterator.hasNext())
+        {
+            var irVar = iterator.next();
+            formalArgsDec.varDecl(irVar.getNumber(), irVar.getType());
+            formalArgsDec.addStoreFormalArg(irVar.getType(), String.format(".%d", irVar.getNumber()), String.format("%s*", irVar.getType()), irVar.getNumber());
+        }
+        return formalArgsDec.toString();
     }
 
     private String closeScope()
