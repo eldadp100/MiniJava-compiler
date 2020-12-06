@@ -150,7 +150,7 @@ public class IRStatement {
 	}
 
     public void addLoadPtrStaticArray(String static_array, String static_array_type, int to_reg) {
-        String str = String.format("    %%_%d = getelementptr %s, %s* %s, i32 0 \n",to_reg, static_array_type,static_array_type,static_array); 
+        String str = String.format("    %%_%d = getelementptr %s, %s* %s, i32 0, i32 0 \n",to_reg, static_array_type,static_array_type,static_array); 
         stmt_str.append(str);
 	}
 
