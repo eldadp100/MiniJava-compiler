@@ -68,7 +68,7 @@ public class IRStatement {
 	}
     public void addMult(int to_reg, String type, int e1_reg, int e2_reg) {
         // String str = String.format("%_%d = add %s %_%d %_%d\n", to_reg, type, e1_reg, e2_reg);
-        String str = String.format("    %%_%d = mul %s %%_%d %%_%d\n", to_reg, type, e1_reg, e2_reg);
+        String str = String.format("    %%_%d = mul %s %%_%d, %%_%d\n", to_reg, type, e1_reg, e2_reg);
         stmt_str.append(str);
 	}
     
