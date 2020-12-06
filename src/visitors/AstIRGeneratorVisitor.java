@@ -159,6 +159,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         int continue_label = this.currentLabel++;
         int skip_label = this.currentLabel++;
 
+        currentIRStatement.addJump(while_label);
         currentIRStatement.addLabel(while_label);
         
         whileStatement.cond().accept(this);
