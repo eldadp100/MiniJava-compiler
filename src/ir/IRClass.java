@@ -203,19 +203,24 @@ public class IRClass {
     }
 
     public String getMethodPtrType(String methodName) {
-        StringBuilder formalTypesStr = new StringBuilder();
+        StringBuilder methodPtrType = new StringBuilder();
+
+        methodPtrType.append(this.getMethodRetType(methodName));
+
         var formalTypes = this.getMethodFormalTypes(methodName);
         var iterator = formalTypes.listIterator();
+        methodPtrType.append(" (");
         while (iterator.hasNext())
         {
             var irVar = iterator.next();
-            formalTypesStr.append(irVar);
+            methodPtrType.append(irVar);
             if (iterator.hasNext()) {
-                formalTypesStr.append(", ");
+                methodPtrType.append(", ");
             }
         }
-        formalTypesStr.append(")*");
-        return formalTypesStr.toString();
+        methodPtrType.append(")*");
+        
+        return methodPtrType.toString();
 
     }
 
