@@ -30,12 +30,12 @@ public class IRStatement {
 
 	public void addBranch(int cond_reg, int if_label, int else_label) {
         // String str = String.format("br i1 %_%d, label %%d, label %%d\n", cond_reg, if_label, else_label);
-        String str = String.format("    br i1 %%_%d, label %%%d, label %%%d\n", cond_reg, if_label, else_label);
+        String str = String.format("    br i1 %%_%d, label %%l%d, label %%l%d\n", cond_reg, if_label, else_label);
         stmt_str.append(str);
     }
 
 	public void addLabel(int label) {
-        String str = String.format("%d:\n", label);
+        String str = String.format("l%d:\n", label);
         stmt_str.append(str);
 	}
 
@@ -51,7 +51,7 @@ public class IRStatement {
 
 	public void addJump(int to_label) {
         // String str = String.format("br label %%d\n", to_label);
-        String str = String.format("    br label %d\n", to_label);
+        String str = String.format("    br label l%d\n", to_label);
         stmt_str.append(str);
     }
 
