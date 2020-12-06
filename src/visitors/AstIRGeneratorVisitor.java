@@ -79,7 +79,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.sym_var_to_type = new HashMap<>();
         this.var_name_to_sym_var = new HashMap<>();
         this.currentRegNum = 0;
-        this.currentSymVarNum = 0;
+        this.currentSymVarNum = 1;
 
         this.currentIRMethod = this.currentIRClass.generateMethod(methodDecl.name());
 
