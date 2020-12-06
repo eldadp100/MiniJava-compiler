@@ -368,11 +368,9 @@ public class AstIRGeneratorVisitor implements Visitor {
         int func_reg = ++this.currentRegNum;
 
         if (this.LastVarClass == this.currentIRClass) {
-            this.currentIRStatement.addCastThis(object_bitcast_ptr_reg);
+            owner_reg = 0;
         }
-        else {
-            this.currentIRStatement.addCast(owner_reg, "i8*", object_bitcast_ptr_reg, "i8***");
-        }
+        this.currentIRStatement.addCast(owner_reg, "i8*", object_bitcast_ptr_reg, "i8***");
 
         this.currentIRStatement.addLoadVar(object_bitcast_ptr_reg, "i8**",vtable_ptr_reg );
         this.currentIRStatement.addConstantRegAssignment(place_of_func_reg, this.LastVarClass.getMethodVtableIndex(e.methodId()));
