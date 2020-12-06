@@ -15,6 +15,7 @@ public class UnresolvedSymbol {
     public void resolve(AstSymbols astSymbols)
     {
         var classSymbolTable = astSymbols.GetSymbolTableByClass(this.className);
+        astSymbols.SaveIdentiferScope(node);
         astSymbols.InsertNodeRedirection(node, classSymbolTable);
     }    
 }

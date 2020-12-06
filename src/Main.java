@@ -42,8 +42,11 @@ public class Main {
                     AstSymbolsVisitor astSymbols = new AstSymbolsVisitor();
                     astSymbols.visit(prog);
 
+                    AstIRClassGeneratorVisitor irClassGeneratorVisitor = new AstIRClassGeneratorVisitor();
+                    irClassGeneratorVisitor.visit(prog);
+
                     AstIRGeneratorVisitor irGeneratorVisitor = new AstIRGeneratorVisitor(
-                        astSymbols.GetAstSymbolTable()
+                        astSymbols.GetAstSymbolTable(), irClassGeneratorVisitor.getIRGenerator()
                     );
                     irGeneratorVisitor.visit(prog);
                     outFile.write(irGeneratorVisitor.getString());
