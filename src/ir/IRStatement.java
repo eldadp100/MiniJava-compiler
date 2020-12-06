@@ -11,12 +11,12 @@ public class IRStatement {
     public void addAssignment(int lv_sym_var, String lv_type, int rv_reg) {
         // "store lv_type %_this.currentRegNum lv_type* lv_symbol_var"
         // String str = String.format("store %s %_%d %s* %s\n", lv_type, rv_reg, lv_type, lv_sym_var);
-        String str = String.format("    store %s %%_%d %s* %%%d\n", lv_type, rv_reg, lv_type, lv_sym_var);
+        String str = String.format("    store %s %%_%d, %s* %%%d\n", lv_type, rv_reg, lv_type, lv_sym_var);
         stmt_str.append(str);
     }
 
     public void addAssignmentToReg(int lv_reg, String lv_type, int rv_reg) {
-        String str = String.format("    store %s %%_%d %s* %%_%d\n", lv_type, rv_reg, lv_type, lv_reg);
+        String str = String.format("    store %s %%_%d, %s* %%_%d\n", lv_type, rv_reg, lv_type, lv_reg);
         stmt_str.append(str);
     }
 
