@@ -102,6 +102,11 @@ public class IRStatement {
         stmt_str.append(str);
     }
 
+    public void addCastThis(int to_reg) {
+        String str = String.format("    %%_%d = bitcast i8* %%_0 to i8***\n", to_reg);
+        stmt_str.append(str);
+    }
+
 	public void addOutOfBoundException(int label) {
         // run-time exception - not compilation (which is exercise 3)
         this.addLabel(label);
