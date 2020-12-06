@@ -62,6 +62,7 @@ public class IRGenerator
 
         ir.append("define i32 @main() {");
         ir.append(this.irMainStatement.toString());
+        ir.append("\tret i32 0\n");
         ir.append("}\n\n");
 
         return ir.toString();
