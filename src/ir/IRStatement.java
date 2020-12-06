@@ -51,7 +51,7 @@ public class IRStatement {
 
 	public void addJump(int to_label) {
         // String str = String.format("br label %%d\n", to_label);
-        String str = String.format("    br label l%d\n", to_label);
+        String str = String.format("    br label %%l%d\n", to_label);
         stmt_str.append(str);
     }
 
