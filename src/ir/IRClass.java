@@ -199,7 +199,7 @@ public class IRClass {
     }
 
     public String getVtableType() {
-        return String.format("[%d x i8*]", this.irMethods.size());
+        return String.format("[%d x i8*]", this.Methods.size());
     }
 
     public String getMethodPtrType(String methodName) {
