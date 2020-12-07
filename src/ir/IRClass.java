@@ -13,7 +13,7 @@ public class IRClass {
     private List<IRClassField> irClassFields = new LinkedList<>();
     private List<String> Methods = new LinkedList<>();
     private Map<String, List<String>> methods_to_formal_args_types = new HashMap<>(); 
-    private Map<String, String> methods_to_return_type = new HashMap<>(); 
+    private Map<String, String> methods_to_return_type = new HashMap<>();
 
     public IRClass(String className)
     {
