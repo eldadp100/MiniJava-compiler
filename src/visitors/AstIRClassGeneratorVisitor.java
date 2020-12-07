@@ -73,7 +73,7 @@ public class AstIRClassGeneratorVisitor implements Visitor {
         FormalArgsTypes.add("i8*");
 
         for (var formal : methodDecl.formals()) { 
-            formal.accept(this);
+            formal.type().accept(this);
             FormalArgsTypes.add(this.currentIRType);
         }
 

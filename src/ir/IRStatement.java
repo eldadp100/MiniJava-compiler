@@ -11,12 +11,12 @@ public class IRStatement {
     public void addAssignment(int lv_sym_var, String lv_type, int rv_reg) {
         // "store lv_type %_this.currentRegNum lv_type* lv_symbol_var"
         // String str = String.format("store %s %_%d %s* %s\n", lv_type, rv_reg, lv_type, lv_sym_var);
-        String str = String.format("    store %s %%_%d %s* %%%d\n", lv_type, rv_reg, lv_type, lv_sym_var);
+        String str = String.format("    store %s %%_%d, %s* %%%d\n", lv_type, rv_reg, lv_type, lv_sym_var);
         stmt_str.append(str);
     }
 
     public void addAssignmentToReg(int lv_reg, String lv_type, int rv_reg) {
-        String str = String.format("    store %s %%_%d %s* %%_%d\n", lv_type, rv_reg, lv_type, lv_reg);
+        String str = String.format("    store %s %%_%d, %s* %%_%d\n", lv_type, rv_reg, lv_type, lv_reg);
         stmt_str.append(str);
     }
 
@@ -30,12 +30,12 @@ public class IRStatement {
 
 	public void addBranch(int cond_reg, int if_label, int else_label) {
         // String str = String.format("br i1 %_%d, label %%d, label %%d\n", cond_reg, if_label, else_label);
-        String str = String.format("    br i1 %%_%d, label %%%d, label %%%d\n", cond_reg, if_label, else_label);
+        String str = String.format("    br i1 %%_%d, label %%l%d, label %%l%d\n", cond_reg, if_label, else_label);
         stmt_str.append(str);
     }
 
 	public void addLabel(int label) {
-        String str = String.format("%d:\n", label);
+        String str = String.format("l%d:\n", label);
         stmt_str.append(str);
 	}
 
@@ -45,13 +45,13 @@ public class IRStatement {
 
 	public void addPhi(int to_reg, int label1, int label2) {
         // String str = String.format("%_%d i1 [0, %%d], [1, %%d]\n", to_reg, label1, label2); // [TODO] - not sure %_%d
-        String str = String.format("    %%_%d i1 [0, %%%d], [1, %%%d]\n", to_reg, label1, label2); // [TODO] - not sure %_%d
+        String str = String.format("    %%_%d = phi i1 [0, %%l%d], [1, %%l%d]\n", to_reg, label1, label2); // [TODO] - not sure %_%d
         stmt_str.append(str);
     }
 
 	public void addJump(int to_label) {
         // String str = String.format("br label %%d\n", to_label);
-        String str = String.format("    br label %d\n", to_label);
+        String str = String.format("    br label %%l%d\n", to_label);
         stmt_str.append(str);
     }
 
@@ -63,17 +63,17 @@ public class IRStatement {
     
     public void addSubstuction(int to_reg, String type, int e1_reg, int e2_reg) {
         // String str = String.format("%_%d = add %s %_%d %_%d\n", to_reg, type, e1_reg, e2_reg);
-        String str = String.format("    %%_%d = sub %s %%_%d %%_%d\n", to_reg, type, e1_reg, e2_reg);
+        String str = String.format("    %%_%d = sub %s %%_%d, %%_%d\n", to_reg, type, e1_reg, e2_reg);
         stmt_str.append(str);
 	}
     public void addMult(int to_reg, String type, int e1_reg, int e2_reg) {
         // String str = String.format("%_%d = add %s %_%d %_%d\n", to_reg, type, e1_reg, e2_reg);
-        String str = String.format("    %%_%d = mul %s %%_%d %%_%d\n", to_reg, type, e1_reg, e2_reg);
+        String str = String.format("    %%_%d = mul %s %%_%d, %%_%d\n", to_reg, type, e1_reg, e2_reg);
         stmt_str.append(str);
 	}
     
 	public void addNot(int expr_reg, int to_reg) {
-        String str = String.format("    %%_%d = not %%_%d\n", to_reg, to_reg, expr_reg); // TODO: it's not correct...
+        String str = String.format("    %%_%d = xor i1 %%_%d, 1\n", to_reg, to_reg, expr_reg); // TODO: it's not correct...
         stmt_str.append(str);
 	}
 
@@ -83,7 +83,7 @@ public class IRStatement {
     }
 
     public void addLoadVar(int from_reg, String type, int to_reg) {
-        String str = String.format("    %%_%d = load %s, %s* %%_%d\n", to_reg, type, type, from_reg); // Validate that its correct
+        String str = String.format("    %%_%d = load %s, %s* %%_%d\n", to_reg, type, type, from_reg); // Validate that it's correct
         stmt_str.append(str);
     }
 
@@ -114,23 +114,27 @@ public class IRStatement {
     }
 
 	public void addStore(String assignType, int assignReg, String assigneeType, int assigneeSym) {
-        String str = String.format("    store %s %%_%d, %s %%%d \n", assignType,assignReg, assigneeType,assigneeSym); 
+        String str = String.format("    store %s %%%d, %s %%%d \n", assignType,assignReg, assigneeType,assigneeSym); 
         stmt_str.append(str);        
 	}
 
-    public void addStoreReg(String assignType, int assignReg, String assigneeType, int assigneeReg) {
+    public void addStoreRegToReg(String assignType, int assignReg, String assigneeType, int assigneeReg) {
         String str = String.format("    store %s %%_%d, %s %%_%d \n", assignType,assignReg, assigneeType,assigneeReg); 
         stmt_str.append(str);        
 	}
 
+    public void addStoreRegToSym(String assignType, int assignReg, String assigneeType, int assigneeSym) {
+        String str = String.format("    store %s %%_%d, %s %%%d \n", assignType,assignReg, assigneeType,assigneeSym); 
+        stmt_str.append(str);        
+	}
     public void addStoreFormalArg(String assignType, String assignReg, String assigneeType, int assigneeSym) {
         String str = String.format("    store %s %%%s, %s %%%d \n", assignType,assignReg, assigneeType,assigneeSym); 
         stmt_str.append(str);        
 	}
 
 
-	public void addAnd(int in1_reg, int in2_reg, int to_reg) {
-        String str = String.format("    %%_%d = and %%_%d, %%_%d \n",to_reg, in1_reg, in2_reg); 
+	public void addAnd(int in1_reg, String type, int in2_reg, int to_reg) {
+        String str = String.format("    %%_%d = and %s %%_%d, %%_%d \n",to_reg, type, in1_reg, in2_reg); 
         stmt_str.append(str); //[TODO] - not sure it's done like that
 	}
 
@@ -150,7 +154,7 @@ public class IRStatement {
 	}
 
     public void addLoadPtrStaticArray(String static_array, String static_array_type, int to_reg) {
-        String str = String.format("    %%_%d = getelementptr %s, %s* %s, i32 0 \n",to_reg, static_array_type,static_array_type,static_array); 
+        String str = String.format("    %%_%d = getelementptr %s, %s* %s, i32 0, i32 0 \n",to_reg, static_array_type,static_array_type,static_array); 
         stmt_str.append(str);
 	}
 
@@ -198,6 +202,11 @@ public class IRStatement {
         String str = String.format("    ret %s %%_%d\n", type, reg);
         stmt_str.append(str);
 	}
+
+    public void addEqual(int to_reg, int from_reg) {
+        String str = String.format("    %%_%d = %%_%d\n", to_reg, from_reg);
+        stmt_str.append(str);
+    }
 
 
 }

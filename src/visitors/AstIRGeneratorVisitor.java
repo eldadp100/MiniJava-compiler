@@ -68,7 +68,9 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     @Override
     public void visit(MainClass mainClass) {
+        this.currentIRStatement = new IRStatement();
         mainClass.mainStatement().accept(this);
+        this.irGenerator.setMainStatement(this.currentIRStatement);
     }
 
     @Override
@@ -77,7 +79,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.sym_var_to_type = new HashMap<>();
         this.var_name_to_sym_var = new HashMap<>();
         this.currentRegNum = 0;
-        this.currentSymVarNum = 0;
+        this.currentSymVarNum = 1;
 
         this.currentIRMethod = this.currentIRClass.generateMethod(methodDecl.name());
 
@@ -157,6 +159,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         int continue_label = this.currentLabel++;
         int skip_label = this.currentLabel++;
 
+        currentIRStatement.addJump(while_label);
         currentIRStatement.addLabel(while_label);
         
         whileStatement.cond().accept(this);
@@ -207,7 +210,9 @@ public class AstIRGeneratorVisitor implements Visitor {
             this.currentIRStatement.addLoadSymVar(array_sym, "i32*", array_ptr_reg);
         } else {
             this.getFieldReg(assignArrayStatement.lv());
-            array_ptr_reg = this.currentRegNum;
+            int temp = this.currentRegNum;
+            array_ptr_reg = ++this.currentRegNum;
+            this.currentIRStatement.addLoadVar(temp, "i32*", array_ptr_reg);
         }
             
         // define zero register
@@ -224,17 +229,18 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addLt(index_reg, arr_length_reg, positive_OOB_reg); // index < len
         this.currentIRStatement.addLt(minus_one_reg, index_reg, negative_OOB_reg); // -1 < index 
         int OOB_reg = ++this.currentRegNum;
-        this.currentIRStatement.addAnd(positive_OOB_reg, negative_OOB_reg, OOB_reg);
+        this.currentIRStatement.addAnd(positive_OOB_reg, "i1", negative_OOB_reg, OOB_reg);
         this.currentIRStatement.addBranch(OOB_reg, continue_label, OOB_label);
         this.currentIRStatement.addOutOfBoundException(OOB_label);
-        
+        this.currentIRStatement.addJump(continue_label);
+
         // continue:
         this.currentIRStatement.addLabel(continue_label);
         int shifted_by_one_index_reg = ++this.currentRegNum;
         this.currentIRStatement.addAdditionByConstant(shifted_by_one_index_reg, "i32", index_reg, 1);
         int arr_index_ptr_reg = ++this.currentRegNum;
         this.currentIRStatement.addLoadPtrAtIndex(array_ptr_reg, shifted_by_one_index_reg, arr_index_ptr_reg, "i32");
-        this.currentIRStatement.addStoreReg("i32", rv_reg, "i32*", arr_index_ptr_reg);
+        this.currentIRStatement.addStoreRegToReg("i32", rv_reg, "i32*", arr_index_ptr_reg);
     }
 
     @Override
@@ -245,6 +251,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         int final_label = this.currentLabel++;
         
         // short circuit
+        this.currentIRStatement.addJump(e1_label);
         this.currentIRStatement.addLabel(e1_label);
         e.e1().accept(this);
         // result in curr register
@@ -255,7 +262,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addLabel(exist_false_label);
         this.currentIRStatement.addJump(final_label);
         this.currentIRStatement.addLabel(final_label);
-        this.currentIRStatement.addPhi(this.currentRegNum++,exist_false_label, e2_label);
+        this.currentIRStatement.addPhi(++this.currentRegNum,exist_false_label, e2_label);
     }
 
     @Override
@@ -332,9 +339,10 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addLt(index_reg, arr_length_reg, positive_OOB_reg); // index < len
         this.currentIRStatement.addLt(minus_one_reg, index_reg, negative_OOB_reg); // -1 < index 
         int OOB_reg = ++this.currentRegNum;
-        this.currentIRStatement.addAnd(positive_OOB_reg, negative_OOB_reg, OOB_reg);
+        this.currentIRStatement.addAnd(positive_OOB_reg, "i1", negative_OOB_reg, OOB_reg);
         this.currentIRStatement.addBranch(OOB_reg, continue_label, OOB_label);
         this.currentIRStatement.addOutOfBoundException(OOB_label);
+        this.currentIRStatement.addJump(continue_label);
         
         // continue:
         this.currentIRStatement.addLabel(continue_label);
@@ -365,7 +373,11 @@ public class AstIRGeneratorVisitor implements Visitor {
         int func_ptr_reg = ++this.currentRegNum;
         int func_reg = ++this.currentRegNum;
 
+        if (this.LastVarClass == this.currentIRClass) {
+            owner_reg = 0;
+        }
         this.currentIRStatement.addCast(owner_reg, "i8*", object_bitcast_ptr_reg, "i8***");
+
         this.currentIRStatement.addLoadVar(object_bitcast_ptr_reg, "i8**",vtable_ptr_reg );
         this.currentIRStatement.addConstantRegAssignment(place_of_func_reg, this.LastVarClass.getMethodVtableIndex(e.methodId()));
         this.currentIRStatement.addLoadPtrAtIndex(vtable_ptr_reg, place_of_func_reg, ptr_to_func_in_vtable, "i8*");
@@ -433,28 +445,23 @@ public class AstIRGeneratorVisitor implements Visitor {
 
     public void visit(ThisExpr e) {
         this.LastVarClass = this.currentIRClass;
+        int to_reg = ++this.currentRegNum;
+        this.currentIRStatement.addEqual(to_reg, this.this_reg);
     }
 
     @Override
     public void visit(NewIntArrayExpr e) {
-        // check not negative lentgh
-        // %_%d = calloc with 4 bytes element size
-        // save at the first element the size
-        // already declared... this is expr!!!
-        // int array_sym_var = this.currentSymVarNum++;
-        // this.sym_var_to_type.put(array_sym_var, "i32*");
-        // this.var_name_to_sym_var.put()
-        // this.currentIRStatement.varDecl(array_sym_var, "i32*");
         e.lengthExpr().accept(this);
         int length_reg = this.currentRegNum;
+        int constant_0 = ++this.currentRegNum;
+        int constant_4 = ++this.currentRegNum;
         int output_before_cast_reg = ++this.currentRegNum;
-        int expr_output_reg = ++this.currentRegNum; // Q: why I put it here? (and not before accept)
         int shifted_length_reg = ++this.currentRegNum;
-        
 
         // positivity handling:
         int length_positivity_reg = ++this.currentRegNum;
-        this.currentIRStatement.addLt(0, length_reg, length_positivity_reg); // positive length (TODO: 0 is ok?)
+        this.currentIRStatement.addConstantRegAssignment(constant_0, 0);
+        this.currentIRStatement.addLt(constant_0, length_reg, length_positivity_reg); // positive length (TODO: 0 is ok?)
         int not_positive_exception_label = this.currentLabel++; 
         int continue_label = this.currentLabel++;
         this.currentIRStatement.addBranch(length_positivity_reg, continue_label, not_positive_exception_label);
@@ -462,12 +469,14 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addJump(continue_label);
         
         // continue:
+        int expr_output_reg = ++this.currentRegNum; // Q: why I put it here? (and not before accept)
+
         this.currentIRStatement.addLabel(continue_label);
         this.currentIRStatement.addAdditionByConstant(shifted_length_reg, "i32", length_reg, 1);
-        this.currentIRStatement.addCaloc(output_before_cast_reg, shifted_length_reg, 4);
+        this.currentIRStatement.addConstantRegAssignment(constant_4, 4);
+        this.currentIRStatement.addCaloc(output_before_cast_reg, shifted_length_reg, constant_4);
         this.currentIRStatement.addCast(output_before_cast_reg, "i8*", expr_output_reg, "i32*");
-
-        this.currentIRStatement.addStore("i32", length_reg ,"i32*", expr_output_reg); // store the size of the array to first index
+        this.currentIRStatement.addStoreRegToReg("i32", length_reg ,"i32*", expr_output_reg); // store the size of the array to first index
     
     }
 
@@ -487,7 +496,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         this.currentIRStatement.addCaloc(calloc_reg, one_reg, object_size_reg);
         this.currentIRStatement.addCast(calloc_reg, "i8*", bitcast_calloc_reg, "i8***");
         this.currentIRStatement.addLoadPtrStaticArray(ObjectClass.getVtableName(), ObjectClass.getVtableType(), pointer_to_vtable_reg);
-        this.currentIRStatement.addStoreReg("i8**", pointer_to_vtable_reg, "i8***", bitcast_calloc_reg);
+        this.currentIRStatement.addStoreRegToReg("i8**", pointer_to_vtable_reg, "i8***", bitcast_calloc_reg);
         this.currentIRStatement.blankLine();
     }
 
