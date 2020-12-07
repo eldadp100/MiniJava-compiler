@@ -43,9 +43,9 @@ public class IRStatement {
         return stmt_str.toString(); 
     }
 
-	public void addPhi(int to_reg, int label1, int label2) {
+	public void addPhi(int to_reg, int label1, int label2, int reg) {
         // String str = String.format("%_%d i1 [0, %%d], [1, %%d]\n", to_reg, label1, label2); // [TODO] - not sure %_%d
-        String str = String.format("    %%_%d = phi i1 [0, %%l%d], [1, %%l%d]\n", to_reg, label1, label2); // [TODO] - not sure %_%d
+        String str = String.format("    %%_%d = phi i1 [0, %%l%d], [%%_%d, %%l%d]\n", to_reg, label1, reg, label2); // [TODO] - not sure %_%d
         stmt_str.append(str);
     }
 
@@ -73,7 +73,7 @@ public class IRStatement {
 	}
     
 	public void addNot(int expr_reg, int to_reg) {
-        String str = String.format("    %%_%d = xor i1 %%_%d, 1\n", to_reg, to_reg, expr_reg); // TODO: it's not correct...
+        String str = String.format("    %%_%d = xor i1 %%_%d, 1\n", to_reg, expr_reg); // TODO: it's not correct...
         stmt_str.append(str);
 	}
 

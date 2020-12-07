@@ -217,7 +217,7 @@ public class AstIRGeneratorVisitor implements Visitor {
             
         // define zero register
         int minus_one_reg = ++this.currentRegNum;
-        this.currentIRStatement.addConstantRegAssignment(minus_one_reg, 0);
+        this.currentIRStatement.addConstantRegAssignment(minus_one_reg, -1);
 
         // check out of bounds exception:
         int arr_length_reg = ++this.currentRegNum;
@@ -247,22 +247,24 @@ public class AstIRGeneratorVisitor implements Visitor {
     public void visit(AndExpr e) {
         int e1_label = this.currentLabel++;
         int e2_label = this.currentLabel++;
-        int exist_false_label = this.currentLabel++;
+        int temp_label = this.currentLabel++;
         int final_label = this.currentLabel++;
         
         // short circuit
+        
+        e.e1().accept(this);
         this.currentIRStatement.addJump(e1_label);
         this.currentIRStatement.addLabel(e1_label);
-        e.e1().accept(this);
         // result in curr register
-        this.currentIRStatement.addBranch(this.currentRegNum, exist_false_label, e2_label);
+        this.currentIRStatement.addBranch(this.currentRegNum, e2_label, final_label);
         this.currentIRStatement.addLabel(e2_label);
         e.e2().accept(this);
-        this.currentIRStatement.addBranch(this.currentRegNum, exist_false_label, final_label);
-        this.currentIRStatement.addLabel(exist_false_label);
+        int reg = this.currentRegNum;
+        this.currentIRStatement.addJump(temp_label);
+        this.currentIRStatement.addLabel(temp_label);
         this.currentIRStatement.addJump(final_label);
         this.currentIRStatement.addLabel(final_label);
-        this.currentIRStatement.addPhi(++this.currentRegNum,exist_false_label, e2_label);
+        this.currentIRStatement.addPhi(++this.currentRegNum,e1_label, temp_label,reg);
     }
 
     @Override
@@ -327,7 +329,7 @@ public class AstIRGeneratorVisitor implements Visitor {
         
         // define zero register
         int minus_one_reg = ++this.currentRegNum;
-        this.currentIRStatement.addConstantRegAssignment(minus_one_reg, 0);
+        this.currentIRStatement.addConstantRegAssignment(minus_one_reg, -1);
 
         // check out of bounds exception:
         int arr_length_reg = ++this.currentRegNum;
@@ -373,9 +375,6 @@ public class AstIRGeneratorVisitor implements Visitor {
         int func_ptr_reg = ++this.currentRegNum;
         int func_reg = ++this.currentRegNum;
 
-        if (this.LastVarClass == this.currentIRClass) {
-            owner_reg = 0;
-        }
         this.currentIRStatement.addCast(owner_reg, "i8*", object_bitcast_ptr_reg, "i8***");
 
         this.currentIRStatement.addLoadVar(object_bitcast_ptr_reg, "i8**",vtable_ptr_reg );
@@ -446,7 +445,7 @@ public class AstIRGeneratorVisitor implements Visitor {
     public void visit(ThisExpr e) {
         this.LastVarClass = this.currentIRClass;
         int to_reg = ++this.currentRegNum;
-        this.currentIRStatement.addEqual(to_reg, this.this_reg);
+        this.currentIRStatement.addCast(this.this_reg, "i8*", to_reg, "i8*");
     }
 
     @Override
