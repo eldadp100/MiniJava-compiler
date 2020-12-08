@@ -11,6 +11,7 @@ public class AstSymbols {
     private Map<AstNode, SymbolTable> astSymbols = new HashMap<>();
     private Map<String, SymbolTable> classSymbols = new HashMap<>();
     private Map<AstType, String> refTypes = new HashMap<>();
+    private Map<AstNode, SymbolTable> identiferScope = new HashMap<>();
 
     public void InsertMethod(AstNode node, SymbolTable symbolTable)
     {
@@ -31,6 +32,11 @@ public class AstSymbols {
     public void InsertRefType(RefType node, String name)
     {
         this.refTypes.put(node, name);
+    }
+
+    public void SaveIdentiferScope(AstNode node)
+    {
+        this.identiferScope.put(node, GetSymbolTableByNode(node));
     }
 
     public SymbolTable GetSymbolTableByNode(AstNode node)
@@ -64,5 +70,10 @@ public class AstSymbols {
     {
         // Return class name if exists, else null
         return this.refTypes.get(node);
+    }
+
+    public SymbolTable GetIdentifierScopeSymbolTable(AstNode astNode)
+    {
+        return this.identiferScope.get(astNode);
     }
 }

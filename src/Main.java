@@ -39,7 +39,17 @@ public class Main {
                     throw new UnsupportedOperationException("TODO - Ex. 3");
 
                 } else if (action.equals("compile")) {
-                    throw new UnsupportedOperationException("TODO - Ex. 2");
+                    AstSymbolsVisitor astSymbols = new AstSymbolsVisitor();
+                    astSymbols.visit(prog);
+
+                    AstIRClassGeneratorVisitor irClassGeneratorVisitor = new AstIRClassGeneratorVisitor();
+                    irClassGeneratorVisitor.visit(prog);
+
+                    AstIRGeneratorVisitor irGeneratorVisitor = new AstIRGeneratorVisitor(
+                        astSymbols.GetAstSymbolTable(), irClassGeneratorVisitor.getIRGenerator()
+                    );
+                    irGeneratorVisitor.visit(prog);
+                    outFile.write(irGeneratorVisitor.getString());
 
                 } else if (action.equals("rename")) {
                     var type = args[2];
