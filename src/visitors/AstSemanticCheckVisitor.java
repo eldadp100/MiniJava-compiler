@@ -7,13 +7,23 @@ import java.util.Map;
 
 import ast.*;
 import ir.*;
+import semantic.*;
 
 public class AstSemanticCheckVisitor implements Visitor {
+    private SemanticDB semanticDB = new SemanticDB();
+
     @Override
     public void visit(Program program) {
+        semanticDB.addClass(program.mainClass().name(), null, true);
         program.mainClass().accept(this);
-        for (ClassDecl classdecl : program.classDecls()) {
-            classdecl.accept(this);
+
+        // First, create a mapping of the classes hierarchy
+        for (ClassDecl classDecl : program.classDecls()) {
+            semanticDB.addClass(classDecl.name(), classDecl.superName(), false);
+        }
+
+        for (ClassDecl classDecl : program.classDecls()) {
+            classDecl.accept(this);
         }
     }
 

@@ -37,8 +37,15 @@ public class Main {
                     outFile.write(astPrinter.getString());
 
                 } else if (action.equals("semantic")) {
-                    AstSemanticCheckVisitor semantic = new AstSemanticCheckVisitor();
-                    semantic.visit(prog);
+                    try {
+                        AstSemanticCheckVisitor semantic = new AstSemanticCheckVisitor();
+                        semantic.visit(prog);
+                        outFile.write("OK\n");
+                    }
+                    catch (Exception e) {
+                        outFile.write("ERROR\n");
+                        throw e;
+                    }
 
                 } else if (action.equals("compile")) {
                     AstSymbolsVisitor astSymbols = new AstSymbolsVisitor();
