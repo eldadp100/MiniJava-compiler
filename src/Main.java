@@ -2,6 +2,7 @@ import ast.*;
 import visitors.AstPrintVisitor;
 import visitors.AstRenamerVisitor;
 import visitors.AstSymbolsVisitor;
+import visitors.AstSemanticCheckVisitor;
 
 import java.io.*;
 
@@ -36,7 +37,8 @@ public class Main {
                     outFile.write(astPrinter.getString());
 
                 } else if (action.equals("semantic")) {
-                    throw new UnsupportedOperationException("TODO - Ex. 3");
+                    AstSemanticCheckVisitor semantic = new AstSemanticCheckVisitor();
+                    semantic.visit(prog);
 
                 } else if (action.equals("compile")) {
                     AstSymbolsVisitor astSymbols = new AstSymbolsVisitor();
