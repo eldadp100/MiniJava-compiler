@@ -11,6 +11,8 @@ import semantic.*;
 
 public class AstSemanticCheckVisitor implements Visitor {
     private SemanticDB semanticDB = new SemanticDB();
+    private String currentClassName;
+    private String currentMethodName;
     private String currentVarType;
 
     @Override
@@ -30,6 +32,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(ClassDecl classDecl) {
+        currentClassName = classDecl.name();
+
         for (var fieldDecl : classDecl.fields()) {
             fieldDecl.accept(this);
             semanticDB.addClassField(classDecl.name(), fieldDecl.name(), currentVarType);
@@ -47,10 +51,15 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
+        var methodInfo = new MethodInfo(methodDecl.name());
+        currentMethodName = methodDecl.name();
+
         methodDecl.returnType().accept(this);
+        methodInfo.setRetType(currentVarType);
 
         for (var formal : methodDecl.formals()) {
             formal.accept(this);
+            methodInfo.addArgType(currentVarType);
         }
 
         for (var varDecl : methodDecl.vardecls()) {
@@ -62,6 +71,7 @@ public class AstSemanticCheckVisitor implements Visitor {
         }
 
         methodDecl.ret().accept(this);
+        semanticDB.addClassMethod(currentClassName, methodInfo);
     }
 
     @Override
