@@ -1,11 +1,16 @@
 package semantic;
 
-public class SemanticDB {
-    private Map<String, List<ClassInfo>> classes = new HashMap<>();
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-    public void AddClass(String className, String superName, boolean isMain) {
+public class SemanticDB {
+    private Map<String, ClassInfo> classes = new HashMap<>();
+
+    public void addClass(String className, String superName, boolean isMain) {
         if (classes.containsKey(className)) {
-            throw RuntimeError(String.format("Class %s has already been declared", className));
+            throw new RuntimeException(String.format("Class %s has already been declared", className));
         }
 
         if (isMain) {
@@ -14,26 +19,53 @@ public class SemanticDB {
             return;
         }
 
-        var hierarchy = null;
-        var classInfo = new ClassInfo(className);
-
         if (superName != null) {
             if (!classes.containsKey(superName)) {
-                throw RuntimeError(String.format("Super Class %d hasn't been declared", superName));
+                throw new RuntimeException(String.format("Super Class %d hasn't been declared", superName));
             }
-            // Get the existing hierarchy
-            hierarchy = classes.get(superName);
-            if (hierarchy == null) {
+
+            var classInfo = new ClassInfo(className, superName);
+
+            // Get super class info
+            superClassInfo = classes.get(superName);
+            if (superClassInfo == null) {
                 // null indicates its the main class
-                throw RuntimeError(String.format("The main class %s cannot be extended", superName));
+                throw new RuntimeException(String.format("The main class %s cannot be extended", superName));
             }
         }
         else {
-            // Create a new hierarchy
-            hierarchy = new ArrayList<ClassInfo>();
+            var classInfo = new ClassInfo(className);
         }
 
-        hierarchy.add(classInfo);
-        classes.put(className, hierarchy);
+        classes.put(className, classInfo);
+    }
+
+    public void addClassField(String className, String fieldName, String fieldType) {
+        var classInfo = getClassInfo(className);
+
+        while (classInfo != null) {
+            if (classInfo.hasField(fieldName)) {
+                throw new RuntimeException(String.format("Field %s has already been declared", fieldName));
+            }
+            classInfo = getSuperClass(classInfo);
+        }
+
+        getClassInfo(className).addField(fieldName, fieldType);
+    }
+
+    public ClassInfo getClassInfo(String className) {
+        if (!classes.containsKey(className)) {
+            throw new RuntimeException(String.format("Class %d hasn't been declared", className));
+        }
+        return classes.get(className);
+    }
+
+    public ClassInfo getSuperClass(ClassInfo classInfo) {
+        var superName = classInfo.getSuperName();
+        if (superName == null) {
+            return null;
+        }
+
+        return getClassInfo(superName);
     }
 }

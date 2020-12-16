@@ -11,6 +11,7 @@ import semantic.*;
 
 public class AstSemanticCheckVisitor implements Visitor {
     private SemanticDB semanticDB = new SemanticDB();
+    private String currentVarType;
 
     @Override
     public void visit(Program program) {
@@ -29,12 +30,11 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(ClassDecl classDecl) {
-        if (classDecl.superName() != null) {
-        }
-
         for (var fieldDecl : classDecl.fields()) {
             fieldDecl.accept(this);
+            semanticDB.addClassField(classDecl.name(), fieldDecl.name(), currentVarType);
         }
+
         for (var methodDecl : classDecl.methoddecls()) {
             methodDecl.accept(this);
         }
@@ -53,10 +53,10 @@ public class AstSemanticCheckVisitor implements Visitor {
             formal.accept(this);
         }
 
-
         for (var varDecl : methodDecl.vardecls()) {
             varDecl.accept(this);
         }
+
         for (var stmt : methodDecl.body()) {
             stmt.accept(this);
         }
@@ -195,17 +195,21 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(IntAstType t) {
+        currentVarType = "int";
     }
 
     @Override
     public void visit(BoolAstType t) {
+        currentVarType = "bool";
     }
 
     @Override
     public void visit(IntArrayAstType t) {
+        currentVarType = "int[]";
     }
 
     @Override
     public void visit(RefType t) {
+        currentVarType = t.id();
     }
 }
