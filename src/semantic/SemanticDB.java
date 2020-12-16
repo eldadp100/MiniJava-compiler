@@ -28,6 +28,10 @@ public class SemanticDB {
         return (type.equals("int")) || (type.equals("bool")) || (type.equals("int[]"));
     }
 
+    public boolean isClassType(String type) {
+        return classes.containsKey(type);
+    }
+
     public boolean isSubtype(String type, String subType) {
         if (isNativeType(type) || isNativeType(subType)) {
             return false;
@@ -44,9 +48,15 @@ public class SemanticDB {
         return false;
     }
 
+    public void validateClassType(String type) {
+        if (!isClassType(type)) {
+            throw new RuntimeException(String.format("Type %s is not a valid class type", type));
+        }
+    }
+
     public void validateType(String type) {
         if ((!isNativeType(type)) &&
-            (!classes.containsKey(type))) {
+            (!isClassType(type))) {
             throw new RuntimeException(String.format("Unknown type %s", type));
         }
     }

@@ -17,13 +17,14 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(Program program) {
-        semanticDB.addClass(program.mainClass().name(), null, true);
-        program.mainClass().accept(this);
-
         // First, create a mapping of the classes hierarchy
         for (ClassDecl classDecl : program.classDecls()) {
             semanticDB.addClass(classDecl.name(), classDecl.superName(), false);
         }
+
+        // Add the main class
+        semanticDB.addClass(program.mainClass().name(), null, true);
+        program.mainClass().accept(this);
 
         for (ClassDecl classDecl : program.classDecls()) {
             classDecl.accept(this);
@@ -197,6 +198,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(NewObjectExpr e) {
+        semanticDB.validateClassType(e.classId());
     }
 
     @Override
