@@ -24,9 +24,12 @@ public class SemanticDB {
         return getClassInfo(superName);
     }
 
+    public boolean isNativeType(String type) {
+        return (type.equals("int")) || (type.equals("bool")) || (type.equals("int[]"));
+    }
+
     public boolean isSubtype(String type, String subType) {
-        if ((type.equals("int")) || (type.equals("bool")) || (type.equals("int[]")) ||
-            (subType.equals("int")) || (subType.equals("bool")) || (subType.equals("int[]"))) {
+        if (isNativeType(type) || isNativeType(subType)) {
             return false;
         }
 
@@ -39,6 +42,13 @@ public class SemanticDB {
         }
 
         return false;
+    }
+
+    public void validateType(String type) {
+        if ((!isNativeType(type)) &&
+            (!classes.containsKey(type))) {
+            throw new RuntimeException(String.format("Unknown type %s", type));
+        }
     }
 
     public void addClass(String className, String superName, boolean isMain) {

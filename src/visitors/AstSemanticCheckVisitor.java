@@ -82,6 +82,7 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(VarDecl varDecl) {
         varDecl.type().accept(this);
+        semanticDB.validateType(currentVarType);
     }
 
     @Override
