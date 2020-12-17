@@ -212,4 +212,11 @@ public class SemanticDB {
                 "Method call arguments count for %s is not as expected", methodName));
         }
     }
+
+    public void validateArrayType(String className, String methodName, String refId) {
+        var type = getRefIdType(className, methodName, refId);
+        if (!type.equals("int[]")) {
+            throw new RuntimeException("Length was invoked on an object which is not array");
+        }
+    }
 }

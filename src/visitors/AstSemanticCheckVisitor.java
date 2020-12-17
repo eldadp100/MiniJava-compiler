@@ -211,6 +211,15 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(ArrayLengthExpr e) {
         e.arrayExpr().accept(this);
+
+        if (e.arrayExpr() instanceof IdentifierExpr) {
+            var refId = ((IdentifierExpr)e.arrayExpr()).id();
+            semanticDB.validateArrayType(currentClassName, currentMethodName, refId);
+        }
+        else {
+            throw new RuntimeException(String.format(
+                "Length cannot be invoked on object of type %s", e.arrayExpr().getClass()));
+        }
     }
 
     @Override
