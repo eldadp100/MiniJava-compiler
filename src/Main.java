@@ -2,6 +2,7 @@ import ast.*;
 import visitors.AstPrintVisitor;
 import visitors.AstRenamerVisitor;
 import visitors.AstSymbolsVisitor;
+import visitors.AstSemanticDBVisitor;
 import visitors.AstSemanticCheckVisitor;
 
 import java.io.*;
@@ -38,8 +39,15 @@ public class Main {
 
                 } else if (action.equals("semantic")) {
                     try {
-                        AstSemanticCheckVisitor semantic = new AstSemanticCheckVisitor();
-                        semantic.visit(prog);
+                        // Builds the classes hierarchy,
+                        // collects all the classes, methods and vars declarations information.
+                        AstSemanticDBVisitor semanticDBVisitor = new AstSemanticDBVisitor();
+                        semanticDBVisitor.visit(prog);
+
+                        // Performs statement related semantic checks
+                        AstSemanticCheckVisitor semanticChecker = new AstSemanticCheckVisitor(semanticDBVisitor.getSemanticDB());
+                        semanticChecker.visit(prog);
+
                         outFile.write("OK\n");
                     }
                     catch (Exception e) {

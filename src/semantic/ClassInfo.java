@@ -26,6 +26,21 @@ public class ClassInfo {
     public String getSuperName() {
         return superName;
     }
+    
+    public boolean hasField(String fieldName) {
+        return fields.containsKey(fieldName);
+    }
+
+    public String getFieldType(String fieldName) {
+        if (!fields.containsKey(fieldName)) {
+            throw new RuntimeException(String.format("Field %s hasn't been declared", fieldName));
+        }
+        return fields.get(fieldName);
+    }
+
+    public boolean hasMethod(String methodName) {
+        return methods.containsKey(methodName);
+    }
 
     public MethodInfo getMethodInfo(String methodName) {
         if (!methods.containsKey(methodName)) {
@@ -46,13 +61,5 @@ public class ClassInfo {
             throw new RuntimeException(String.format("Method %s has already been declared", methodName));
         }
         methods.put(methodName, methodInfo);
-    }
-
-    public boolean hasField(String fieldName) {
-        return fields.containsKey(fieldName);
-    }
-
-    public boolean hasMethod(String methodName) {
-        return methods.containsKey(methodName);
     }
 }

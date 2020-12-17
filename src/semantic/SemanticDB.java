@@ -93,21 +93,43 @@ public class SemanticDB {
         classes.put(className, classInfo);
     }
 
-    public void addClassField(String className, String fieldName, String fieldType) {
+    public boolean hasField(String className, String fieldName) {
         var classInfo = getClassInfo(className);
 
         while (classInfo != null) {
             if (classInfo.hasField(fieldName)) {
-                throw new RuntimeException(String.format("Field %s has already been declared", fieldName));
+                return true;
             }
             classInfo = getSuperClass(classInfo);
+        }
+
+        return false;
+    }
+
+    public void addClassField(String className, String fieldName, String fieldType) {
+        if (hasField(className, fieldName)) {
+            throw new RuntimeException(String.format("Field %s has already been declared", fieldName));
         }
 
         getClassInfo(className).addField(fieldName, fieldType);
     }
 
+    public String getClassFieldType(String className, String fieldName) {
+        var classInfo = getClassInfo(className);
+
+        while (classInfo != null) {
+            if (classInfo.hasField(fieldName)) {
+                return classInfo.getFieldType(fieldName);
+            }
+            classInfo = getSuperClass(classInfo);
+        }
+
+        throw new RuntimeException(String.format("Field %s could not be found", fieldName));
+    }
+
     public void addClassMethod(String className, MethodInfo methodInfo) {
         var classInfo = getClassInfo(className);
+        
         // In the same class duplication / overloading is not allowed
         if (classInfo.hasMethod(methodInfo.getName())) {
             throw new RuntimeException(String.format("Method %s cannot be overloaded", methodInfo.getName()));
@@ -118,9 +140,8 @@ public class SemanticDB {
             if (classInfo.hasMethod(methodInfo.getName())) {
                 var currentMethodInfo = classInfo.getMethodInfo(methodInfo.getName());
 
-                // Only overloading is not allowed
-                if (!(currentMethodInfo.getRetType().equals(methodInfo.getRetType())) ||
-                    !(currentMethodInfo.getArgsType().equals(methodInfo.getArgsType()))) {
+                // Overloading is not allowed
+                if (!currentMethodInfo.equals(methodInfo)) {
                     throw new RuntimeException(String.format("Method %s cannot be overloaded", methodInfo.getName()));
                 }
             }
@@ -129,5 +150,21 @@ public class SemanticDB {
         }
 
         getClassInfo(className).addMethod(methodInfo.getName(), methodInfo);
+    }    
+
+    public String GetRefIdType(String className, String methodName, String refId) {
+        var methodInfo = getClassInfo(className).getMethodInfo(methodName);
+
+        if (methodInfo.hasLocalVar(refId)) {
+            return methodInfo.getLocalVarType(refId);
+        }
+        else if (methodInfo.hasArg(refId)) {
+            return methodInfo.getArgType(refId);
+        }
+        else if (hasField(className, refId)) {
+            return getClassFieldType(className, refId);
+        }
+
+        throw new RuntimeException(String.format("RefId %s could not be found", refId));
     }
 }

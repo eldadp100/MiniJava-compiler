@@ -9,19 +9,24 @@ import ast.*;
 import ir.*;
 import semantic.*;
 
-public class AstSemanticCheckVisitor implements Visitor {
-    private SemanticDB semanticDB;
+public class AstSemanticDBVisitor implements Visitor {
+    private SemanticDB semanticDB = new SemanticDB();
     private String currentClassName;
     private String currentMethodName;
     private String currentVarType;
-    private String currentIdentifierName;
 
-    public AstSemanticCheckVisitor(SemanticDB semanticDB) {
-        this.semanticDB = semanticDB;
+    public SemanticDB getSemanticDB() {
+        return semanticDB;
     }
 
     @Override
     public void visit(Program program) {
+        // First, create a mapping of the classes hierarchy
+        for (ClassDecl classDecl : program.classDecls()) {
+            semanticDB.addClass(classDecl.name(), classDecl.superName(), false);
+        }
+
+        semanticDB.addClass(program.mainClass().name(), null, true);
         program.mainClass().accept(this);
 
         for (ClassDecl classDecl : program.classDecls()) {
@@ -35,6 +40,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
         for (var fieldDecl : classDecl.fields()) {
             fieldDecl.accept(this);
+            semanticDB.addClassField(classDecl.name(), fieldDecl.name(), currentVarType);
         }
 
         for (var methodDecl : classDecl.methoddecls()) {
@@ -44,31 +50,31 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(MainClass mainClass) {
-        mainClass.mainStatement().accept(this);
+        // Skip the main statement
     }
 
     @Override
     public void visit(MethodDecl methodDecl) {
-        // TODO: Remove
-        System.out.println(String.format("ClassName: %s, MethodName: %s", currentClassName, currentMethodName));
-
+        var methodInfo = new MethodInfo(methodDecl.name());
         currentMethodName = methodDecl.name();
 
         methodDecl.returnType().accept(this);
+        methodInfo.setRetType(currentVarType);
 
         for (var formal : methodDecl.formals()) {
             formal.accept(this);
+            methodInfo.addArg(formal.name(), currentVarType);
         }
 
         for (var varDecl : methodDecl.vardecls()) {
             varDecl.accept(this);
+            methodInfo.addLocalVar(varDecl.name(), currentVarType);
         }
 
-        for (var stmt : methodDecl.body()) {
-            stmt.accept(this);
-        }
+        // Skip the method statements
 
         methodDecl.ret().accept(this);
+        semanticDB.addClassMethod(currentClassName, methodInfo);
     }
 
     @Override
@@ -79,6 +85,7 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(VarDecl varDecl) {
         varDecl.type().accept(this);
+        semanticDB.validateType(currentVarType);
     }
 
     @Override
@@ -160,18 +167,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(MethodCallExpr e) {
-        currentIdentifierName = "";
         e.ownerExpr().accept(this);
-
-        if (!currentIdentifierName.isEmpty()) {
-            // The owner expression is a variable (not a new or this)
-            // Verify it has a class type
-            var type = semanticDB.GetRefIdType(
-                currentClassName, currentMethodName, currentIdentifierName);
-            
-            semanticDB.validateClassType(type);
-        }
-
         for (Expr arg : e.actuals()) {
             arg.accept(this);
         }
@@ -191,7 +187,6 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(IdentifierExpr e) {
-        currentIdentifierName = e.id();
     }
 
     public void visit(ThisExpr e) {
@@ -204,7 +199,6 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(NewObjectExpr e) {
-        semanticDB.validateClassType(e.classId());
     }
 
     @Override
