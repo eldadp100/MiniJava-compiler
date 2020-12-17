@@ -73,6 +73,16 @@ public class MethodInfo {
         throw new RuntimeException(String.format("Arg %s is not defined", argName));
     }
 
+    public List<String> getArgTypes() {
+        var argTypes = new LinkedList<String>();
+
+        for (VarInfo arg : args) {
+            argTypes.add(arg.getType());
+        }
+
+        return argTypes;
+    }
+
     public boolean hasLocalVar(String varName) {
         for (VarInfo varInfo : localVars) {
             if (varInfo.getName().equals(varName)) {

@@ -16,6 +16,7 @@ public class ClassInfo {
     }
 
     public ClassInfo(String className, String superName) {
+        this.className = className;
         this.superName = superName;
     }
 

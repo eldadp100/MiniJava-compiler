@@ -50,6 +50,7 @@ public class AstSemanticDBVisitor implements Visitor {
 
     @Override
     public void visit(MainClass mainClass) {
+        currentClassName = mainClass.name();
         // Skip the main statement
     }
 
