@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 import ast.*;
 import ir.*;
@@ -13,7 +15,7 @@ public class AstSemanticCheckVisitor implements Visitor {
     private SemanticDB semanticDB;
     private String currentClassName;
     private String currentMethodName;
-    private String currentVarType;
+    private Set<String> currentUninitVars;
 
     public AstSemanticCheckVisitor(SemanticDB semanticDB) {
         this.semanticDB = semanticDB;
@@ -103,6 +105,23 @@ public class AstSemanticCheckVisitor implements Visitor {
         }
     }
 
+    private void validateInitialized(String refId) {
+        var methodInfo = semanticDB.getClassMethodInfo(currentClassName, currentMethodName);
+        if (!methodInfo.hasLocalVar(refId)) {
+            return;
+        }
+
+        if (currentUninitVars.contains(refId)) {
+            throw new RuntimeException(String.format("Accessing uninitialized var %s", refId));
+        }
+    }
+
+    private void setInitialized(String refId) {
+        if (currentUninitVars.contains(refId)) {
+            currentUninitVars.remove(refId);
+        }
+    }
+
     @Override
     public void visit(Program program) {
         program.mainClass().accept(this);
@@ -133,9 +152,6 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(MethodDecl methodDecl) {
-        // TODO: Remove
-        // System.out.println(String.format("ClassName: %s, MethodName: %s", currentClassName, currentMethodName));
-
         currentMethodName = methodDecl.name();
 
         methodDecl.returnType().accept(this);
@@ -144,8 +160,10 @@ public class AstSemanticCheckVisitor implements Visitor {
             formal.accept(this);
         }
 
+        currentUninitVars = new HashSet<String>();
         for (var varDecl : methodDecl.vardecls()) {
             varDecl.accept(this);
+            currentUninitVars.add(varDecl.name());
         }
 
         for (var stmt : methodDecl.body()) {
@@ -175,25 +193,38 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(IfStatement ifStatement) {
-        validateBoolType(ifStatement.cond());
-
+        validateBoolType(ifStatement.cond());        
         ifStatement.cond().accept(this);
+
+        var orgUninitVars = currentUninitVars;
+
+        currentUninitVars = new HashSet<String>(orgUninitVars);
         ifStatement.thencase().accept(this);
+        var thenUninitVars = currentUninitVars;
+
+        currentUninitVars = new HashSet<String>(orgUninitVars);
         ifStatement.elsecase().accept(this);
+        var elseUninitVars = currentUninitVars;
+
+        // Join the two sets
+        thenUninitVars.addAll(elseUninitVars);
+        currentUninitVars = thenUninitVars; 
     }
 
     @Override
     public void visit(WhileStatement whileStatement) {
         validateBoolType(whileStatement.cond());
-
         whileStatement.cond().accept(this);
+
+        var orgUninitVars = currentUninitVars;
+        currentUninitVars = new HashSet<String>(orgUninitVars);
         whileStatement.body().accept(this);
+        currentUninitVars = orgUninitVars;
     }
 
     @Override
     public void visit(SysoutStatement sysoutStatement) {
         validateIntType(sysoutStatement.arg());
-
         sysoutStatement.arg().accept(this);
     }
 
@@ -202,8 +233,10 @@ public class AstSemanticCheckVisitor implements Visitor {
         var lvType = semanticDB.getRefIdType(currentClassName, currentMethodName, assignStatement.lv());
         var rvType = extractExprType(assignStatement.rv());
         semanticDB.validateSubType(lvType, rvType);
-
+        
         assignStatement.rv().accept(this);
+
+        setInitialized(assignStatement.lv());
     }
 
     @Override
@@ -214,6 +247,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
         assignArrayStatement.index().accept(this);
         assignArrayStatement.rv().accept(this);
+
+        setInitialized(assignArrayStatement.lv());
     }
 
     @Override
@@ -273,7 +308,7 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(ArrayLengthExpr e) {
         validateArrayType(e.arrayExpr());
-
+        
         e.arrayExpr().accept(this);
     }
 
@@ -307,6 +342,7 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(IdentifierExpr e) {
         semanticDB.getRefIdType(currentClassName, currentMethodName, e.id());
+        validateInitialized(e.id());
     }
 
     public void visit(ThisExpr e) {
@@ -315,7 +351,6 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(NewIntArrayExpr e) {
         validateIntType(e.lengthExpr());
-
         e.lengthExpr().accept(this);
     }
 
@@ -327,27 +362,22 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(NotExpr e) {
         validateBoolType(e.e());
-
         e.e().accept(this);
     }
 
     @Override
     public void visit(IntAstType t) {
-        currentVarType = "int";
     }
 
     @Override
     public void visit(BoolAstType t) {
-        currentVarType = "bool";
     }
 
     @Override
     public void visit(IntArrayAstType t) {
-        currentVarType = "int[]";
     }
 
     @Override
     public void visit(RefType t) {
-        currentVarType = t.id();
     }
 }
