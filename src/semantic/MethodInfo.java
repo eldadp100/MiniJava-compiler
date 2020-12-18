@@ -108,10 +108,16 @@ public class MethodInfo {
     }
 
     public void addArg(String argName, String argType) {
+        if (hasArg(argName)) {
+            throw new RuntimeException(String.format("Arg %s is already defined", argName));
+        }
         this.args.add(new VarInfo(argName, argType));
     }
 
     public void addLocalVar(String varName, String varType) {
+        if (hasLocalVar(varName)) {
+            throw new RuntimeException(String.format("Local var %s is already defined", varName));
+        }
         this.localVars.add(new VarInfo(varName, varType));
     }
 }
