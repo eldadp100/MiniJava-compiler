@@ -74,6 +74,13 @@ public class AstSemanticCheckVisitor implements Visitor {
         throw new RuntimeException(String.format("expr of unknown type %s", expr.getClass()));
     }
 
+    private void validateCondition(Expr cond) {
+        var condType = extractExprType(cond);
+        if (!condType.equals("bool")) {
+            throw new RuntimeException("Condition is not boolean");
+        }
+    }
+
     @Override
     public void visit(Program program) {
         program.mainClass().accept(this);
@@ -145,6 +152,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(IfStatement ifStatement) {
+        validateCondition(ifStatement.cond());
+
         ifStatement.cond().accept(this);
         ifStatement.thencase().accept(this);
         ifStatement.elsecase().accept(this);
@@ -152,6 +161,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(WhileStatement whileStatement) {
+        validateCondition(whileStatement.cond());
+
         whileStatement.cond().accept(this);
         whileStatement.body().accept(this);
     }
