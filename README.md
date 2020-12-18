@@ -1,31 +1,3 @@
-## Task Pool
-| Task                                                         | Subtask                                 | Assignees                        | Status                          |
-| :----------------------------------------------------------- | --------------------------------------- | ------------------------------- | ------------------------------- |
-| Create task pool.                                            |                                         | @nityuiop18, @eldadp100, @yuval | ![](https://progress-bar.dev/33) |
-| Implement *IRGeneratorVisitor.java* completely, taking all possibilities into account. | -             |                                 | ![](https://progress-bar.dev/0) |
-| Implement *IRGenerator.java*.                                | -                                       |                                 |                                 |
-| -                                                            | Define the module functions signatures. | @nityuiop18                     | ![](https://progress-bar.dev/0) |
-| Define IRObject.java interface. IRObjects returns the actual IR text for their object. | -                                       |                                 | ![](https://progress-bar.dev/0) |
-| Implement IRFunction.java.                                   | -                                       |                                 |                                 |
-| -                                                            | Support static function.                |                                 | ![](https://progress-bar.dev/0) |
-| -                                                            | Support class method.                   |                                 | ![](https://progress-bar.dev/0) |
-| Implement IRVariable.java.                                   | -                                       |                                 |                                 |
-| -                                                            | Support local variable.                 |                                 | ![](https://progress-bar.dev/0) |
-| -                                                            | Support function parameter.             |                                 | ![](https://progress-bar.dev/0) |
-| -                                                            | Support class field.                    |                                 | ![](https://progress-bar.dev/0) |
-| Implement IRClass.java.                                      | -                                       |                                 |                                 |
-| -                                                            | Support vtable.                         |                                 | ![](https://progress-bar.dev/0) |
-| Document everything.                                         | -                                       |                                 | ![](https://progress-bar.dev/0) |
-| Code review & Tests.                                         | -                                       |                                 | ![](https://progress-bar.dev/0) |
-|                                                              |                                         |                                 | ![](https://progress-bar.dev/0) |
-|                                                              |                                         |                                 | ![](https://progress-bar.dev/0) |
-|                                                              |                                         |                                 | ![](https://progress-bar.dev/0) |
-|                                                              |                                         |                                 | ![](https://progress-bar.dev/0) |
-|                                                              |                                         |                                 | ![](https://progress-bar.dev/0) |
-
-
-
---------------------------------------------------------------------------------------------------------------------------------
 This is our project. We should change the readme sometime
 
 
