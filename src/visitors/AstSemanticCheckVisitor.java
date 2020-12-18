@@ -86,6 +86,13 @@ public class AstSemanticCheckVisitor implements Visitor {
         semanticDB.validateMethodRetType(currentClassName, currentMethodName, retType);
     }
 
+    private void validateIntType(Expr expr) {
+        var retType = extractExprType(expr);
+        if (!retType.equals("int")) {
+            throw new RuntimeException("Expr is not of type int");
+        }
+    }
+
     @Override
     public void visit(Program program) {
         program.mainClass().accept(this);
@@ -175,6 +182,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(SysoutStatement sysoutStatement) {
+        validateIntType(sysoutStatement.arg());
         sysoutStatement.arg().accept(this);
     }
 
