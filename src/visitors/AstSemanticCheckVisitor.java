@@ -35,43 +35,43 @@ public class AstSemanticCheckVisitor implements Visitor {
         throw new RuntimeException(String.format("Invalid owner type %s", ownerExpr.getClass()));
     }
 
-    private String extractArgType(Expr arg) {
-        if ((arg instanceof IntegerLiteralExpr) ||
-            (arg instanceof AddExpr) ||
-            (arg instanceof SubtractExpr) ||
-            (arg instanceof MultExpr) ||
-            (arg instanceof ArrayAccessExpr) ||
-            (arg instanceof ArrayLengthExpr)) {
+    private String extractExprType(Expr expr) {
+        if ((expr instanceof IntegerLiteralExpr) ||
+            (expr instanceof AddExpr) ||
+            (expr instanceof SubtractExpr) ||
+            (expr instanceof MultExpr) ||
+            (expr instanceof ArrayAccessExpr) ||
+            (expr instanceof ArrayLengthExpr)) {
             return "int";
         }
-        else if ((arg instanceof TrueExpr) ||
-                 (arg instanceof FalseExpr) ||
-                 (arg instanceof AndExpr) ||
-                 (arg instanceof NotExpr) ||
-                 (arg instanceof LtExpr)) {
+        else if ((expr instanceof TrueExpr) ||
+                 (expr instanceof FalseExpr) ||
+                 (expr instanceof AndExpr) ||
+                 (expr instanceof NotExpr) ||
+                 (expr instanceof LtExpr)) {
             return "bool";
         }
-        else if (arg instanceof NewIntArrayExpr) {
+        else if (expr instanceof NewIntArrayExpr) {
             return "int[]";
         }
-        else if (arg instanceof NewObjectExpr) {
-            return ((NewObjectExpr)arg).classId();
+        else if (expr instanceof NewObjectExpr) {
+            return ((NewObjectExpr)expr).classId();
         }
-        else if (arg instanceof ThisExpr) {
+        else if (expr instanceof ThisExpr) {
             return currentClassName;
         }
-        else if (arg instanceof IdentifierExpr) {
-            var refId = ((IdentifierExpr)arg).id();
+        else if (expr instanceof IdentifierExpr) {
+            var refId = ((IdentifierExpr)expr).id();
             return semanticDB.getRefIdType(
                 currentClassName, currentMethodName, refId);
         }
-        else if (arg instanceof MethodCallExpr) {
-            var methodName = ((MethodCallExpr)arg).methodId();
-            var className = extractMethodCallOwner(((MethodCallExpr)arg).ownerExpr());
+        else if (expr instanceof MethodCallExpr) {
+            var methodName = ((MethodCallExpr)expr).methodId();
+            var className = extractMethodCallOwner(((MethodCallExpr)expr).ownerExpr());
             return semanticDB.getClassMethodInfo(className, methodName).getRetType();
         }
         
-        throw new RuntimeException(String.format("arg of unknown type %s", arg.getClass()));
+        throw new RuntimeException(String.format("expr of unknown type %s", expr.getClass()));
     }
 
     @Override
@@ -163,7 +163,10 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(AssignStatement assignStatement) {
-        semanticDB.getRefIdType(currentClassName, currentMethodName, assignStatement.lv());
+        var lvType = semanticDB.getRefIdType(currentClassName, currentMethodName, assignStatement.lv());
+        var rvType = extractExprType(assignStatement.rv());
+        semanticDB.validateSubType(lvType, rvType);
+
         assignStatement.rv().accept(this);
     }
 
@@ -233,7 +236,7 @@ public class AstSemanticCheckVisitor implements Visitor {
         List<String> argTypes = new LinkedList<>();
         for (Expr arg : e.actuals()) {
             arg.accept(this);
-            argTypes.add(extractArgType(arg));
+            argTypes.add(extractExprType(arg));
         }
         semanticDB.validateMethodCallArgs(ownerClassType, e.methodId(), argTypes);
     }

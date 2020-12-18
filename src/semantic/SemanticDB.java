@@ -32,10 +32,12 @@ public class SemanticDB {
     }
 
     public boolean isSubtype(String type, String subType) {
+        // If either one is a native type, they should be equal
         if (isNativeType(type) || isNativeType(subType)) {
-            return false;
+            return type.equals(subType);
         }
-
+    
+        // Otherwise both are class types 
         var subClassInfo = getClassInfo(subType);
         while (subClassInfo != null) {
             if (subClassInfo.getClassName().equals(type)) {
@@ -45,6 +47,12 @@ public class SemanticDB {
         }
 
         return false;
+    }
+    
+    public void validateSubType(String type, String subType) {
+        if (!isSubtype(type, subType)) {
+            throw new RuntimeException(String.format("%s is not subtype of %s", subType, type));
+        }
     }
 
     public void validateClassType(String type) {
@@ -191,14 +199,6 @@ public class SemanticDB {
             var callerArgType = callIter.next();
             var methodArgType = methodIter.next();
 
-            // If either one is a native type, they should be equal
-            if ((isNativeType(callerArgType) || isNativeType(methodArgType)) &&
-                (callerArgType.equals(methodArgType))) {
-                continue;
-            }
-            
-            // Otherwise both are class types and the caller passed type should be 
-            // subtype of the method arg type
             if (isSubtype(methodArgType, callerArgType)) {
                 continue;
             }
