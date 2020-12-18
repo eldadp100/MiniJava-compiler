@@ -81,6 +81,7 @@ public class AstSemanticDBVisitor implements Visitor {
     @Override
     public void visit(FormalArg formalArg) {
         formalArg.type().accept(this);
+        semanticDB.validateType(currentVarType);
     }
 
     @Override

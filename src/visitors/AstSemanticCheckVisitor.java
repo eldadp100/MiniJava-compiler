@@ -74,16 +74,26 @@ public class AstSemanticCheckVisitor implements Visitor {
         throw new RuntimeException(String.format("expr of unknown type %s", expr.getClass()));
     }
 
-    private void validateCondition(Expr cond) {
-        var condType = extractExprType(cond);
-        if (!condType.equals("bool")) {
-            throw new RuntimeException("Condition is not boolean");
-        }
-    }
-
     private void validateMethodRetType(Expr ret) {
         var retType = extractExprType(ret);
         semanticDB.validateMethodRetType(currentClassName, currentMethodName, retType);
+    }
+
+    private void validateArrayType(Expr expr) {
+        if (expr instanceof IdentifierExpr) {
+            var refId = ((IdentifierExpr)expr).id();
+            semanticDB.validateArrayType(currentClassName, currentMethodName, refId);
+        }
+        else {
+            throw new RuntimeException("Expr is not of type int[]");
+        }
+    }
+
+    private void validateBoolType(Expr expr) {
+        var type = extractExprType(expr);
+        if (!type.equals("bool")) {
+            throw new RuntimeException("Expr is not of type bool");
+        }
     }
 
     private void validateIntType(Expr expr) {
@@ -124,7 +134,7 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(MethodDecl methodDecl) {
         // TODO: Remove
-        System.out.println(String.format("ClassName: %s, MethodName: %s", currentClassName, currentMethodName));
+        // System.out.println(String.format("ClassName: %s, MethodName: %s", currentClassName, currentMethodName));
 
         currentMethodName = methodDecl.name();
 
@@ -165,7 +175,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(IfStatement ifStatement) {
-        validateCondition(ifStatement.cond());
+        validateBoolType(ifStatement.cond());
 
         ifStatement.cond().accept(this);
         ifStatement.thencase().accept(this);
@@ -174,7 +184,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(WhileStatement whileStatement) {
-        validateCondition(whileStatement.cond());
+        validateBoolType(whileStatement.cond());
 
         whileStatement.cond().accept(this);
         whileStatement.body().accept(this);
@@ -183,6 +193,7 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(SysoutStatement sysoutStatement) {
         validateIntType(sysoutStatement.arg());
+
         sysoutStatement.arg().accept(this);
     }
 
@@ -197,58 +208,73 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(AssignArrayStatement assignArrayStatement) {
+        semanticDB.validateArrayType(currentClassName, currentMethodName, assignArrayStatement.lv());
+        validateIntType(assignArrayStatement.index());
+        validateIntType(assignArrayStatement.rv());
+
         assignArrayStatement.index().accept(this);
         assignArrayStatement.rv().accept(this);
     }
 
     @Override
     public void visit(AndExpr e) {
+        validateBoolType(e.e1());
+        validateBoolType(e.e2());
+
         e.e1().accept(this);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(LtExpr e) {
+        validateIntType(e.e1());
+        validateIntType(e.e2());
+
         e.e1().accept(this);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(AddExpr e) {
+        validateIntType(e.e1());
+        validateIntType(e.e2());
+
         e.e1().accept(this);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(SubtractExpr e) {
+        validateIntType(e.e1());
+        validateIntType(e.e2());
+
         e.e1().accept(this);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(MultExpr e) {
+        validateIntType(e.e1());
+        validateIntType(e.e2());
+
         e.e1().accept(this);
         e.e2().accept(this);
     }
 
     @Override
     public void visit(ArrayAccessExpr e) {
+        validateArrayType(e.arrayExpr());
+        validateIntType(e.indexExpr());
+
         e.arrayExpr().accept(this);
         e.indexExpr().accept(this);
     }
 
     @Override
     public void visit(ArrayLengthExpr e) {
-        e.arrayExpr().accept(this);
+        validateArrayType(e.arrayExpr());
 
-        if (e.arrayExpr() instanceof IdentifierExpr) {
-            var refId = ((IdentifierExpr)e.arrayExpr()).id();
-            semanticDB.validateArrayType(currentClassName, currentMethodName, refId);
-        }
-        else {
-            throw new RuntimeException(String.format(
-                "Length cannot be invoked on object of type %s", e.arrayExpr().getClass()));
-        }
+        e.arrayExpr().accept(this);
     }
 
     @Override
@@ -288,6 +314,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(NewIntArrayExpr e) {
+        validateIntType(e.lengthExpr());
+
         e.lengthExpr().accept(this);
     }
 
@@ -298,6 +326,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(NotExpr e) {
+        validateBoolType(e.e());
+
         e.e().accept(this);
     }
 
