@@ -81,6 +81,11 @@ public class AstSemanticCheckVisitor implements Visitor {
         }
     }
 
+    private void validateMethodRetType(Expr ret) {
+        var retType = extractExprType(ret);
+        semanticDB.validateMethodRetType(currentClassName, currentMethodName, retType);
+    }
+
     @Override
     public void visit(Program program) {
         program.mainClass().accept(this);
@@ -130,6 +135,7 @@ public class AstSemanticCheckVisitor implements Visitor {
             stmt.accept(this);
         }
 
+        validateMethodRetType(methodDecl.ret());
         methodDecl.ret().accept(this);
     }
 

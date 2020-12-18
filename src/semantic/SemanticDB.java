@@ -213,6 +213,16 @@ public class SemanticDB {
         }
     }
 
+    public void validateMethodRetType(String className, String methodName, String retType) {
+        var methodInfo = getClassMethodInfo(className, methodName);
+        var methodRetType = methodInfo.getRetType();
+
+        if (!isSubtype(methodRetType, retType)) {
+            throw new RuntimeException(
+                String.format("Method %s return value doesn't match the method signature", methodName));
+        }
+    }
+
     public void validateArrayType(String className, String methodName, String refId) {
         var type = getRefIdType(className, methodName, refId);
         if (!type.equals("int[]")) {
