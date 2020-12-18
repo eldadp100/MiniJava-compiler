@@ -163,6 +163,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(AssignStatement assignStatement) {
+        semanticDB.getRefIdType(currentClassName, currentMethodName, assignStatement.lv());
         assignStatement.rv().accept(this);
     }
 
@@ -251,6 +252,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(IdentifierExpr e) {
+        semanticDB.getRefIdType(currentClassName, currentMethodName, e.id());
     }
 
     public void visit(ThisExpr e) {
