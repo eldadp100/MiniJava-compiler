@@ -15,36 +15,6 @@ public class MethodInfo {
         this.name = name;
     }
 
-    private boolean compareVarLists(List<VarInfo> list1, List<VarInfo> list2) {
-        var iter1 = list1.iterator();
-        var iter2 = list2.iterator();
-
-        while (iter1.hasNext() && iter2.hasNext()) {
-            var type1 = iter1.next().getType();
-            var type2 = iter2.next().getType();
-            if (!type1.equals(type2)) {
-                return false;
-            }
-        }
-
-        if (iter1.hasNext() != iter2.hasNext()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public boolean equals(MethodInfo methodInfo) {
-        if (!this.name.equals(methodInfo.name) ||
-            !this.retType.equals(methodInfo.retType) ||
-            !compareVarLists(this.args, methodInfo.args) ||
-            !compareVarLists(this.localVars, methodInfo.localVars)) {
-            return false;
-        }
-        
-        return true;
-    }
-
     public String getName() {
         return name;
     }

@@ -81,27 +81,10 @@ public class AstSemanticCheckVisitor implements Visitor {
         semanticDB.validateMethodRetType(currentClassName, currentMethodName, retType);
     }
 
-    private void validateArrayType(Expr expr) {
-        if (expr instanceof IdentifierExpr) {
-            var refId = ((IdentifierExpr)expr).id();
-            semanticDB.validateArrayType(currentClassName, currentMethodName, refId);
-        }
-        else {
-            throw new RuntimeException("Expr is not of type int[]");
-        }
-    }
-
-    private void validateBoolType(Expr expr) {
+    private void validateType(Expr expr, String correctType) {
         var type = extractExprType(expr);
-        if (!type.equals("bool")) {
-            throw new RuntimeException("Expr is not of type bool");
-        }
-    }
-
-    private void validateIntType(Expr expr) {
-        var retType = extractExprType(expr);
-        if (!retType.equals("int")) {
-            throw new RuntimeException("Expr is not of type int");
+        if (!type.equals(correctType)) {
+            throw new RuntimeException(String.format("Expr is not of type %s", correctType));
         }
     }
 
@@ -147,6 +130,8 @@ public class AstSemanticCheckVisitor implements Visitor {
     @Override
     public void visit(MainClass mainClass) {
         currentClassName = mainClass.name();
+
+        currentUninitVars = new HashSet<String>();
         mainClass.mainStatement().accept(this);
     }
 
@@ -193,7 +178,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(IfStatement ifStatement) {
-        validateBoolType(ifStatement.cond());        
+        validateType(ifStatement.cond(), "bool");
         ifStatement.cond().accept(this);
 
         var orgUninitVars = currentUninitVars;
@@ -213,7 +198,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(WhileStatement whileStatement) {
-        validateBoolType(whileStatement.cond());
+        validateType(whileStatement.cond(), "bool");
         whileStatement.cond().accept(this);
 
         var orgUninitVars = currentUninitVars;
@@ -224,7 +209,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(SysoutStatement sysoutStatement) {
-        validateIntType(sysoutStatement.arg());
+        validateType(sysoutStatement.arg(), "int");
         sysoutStatement.arg().accept(this);
     }
 
@@ -241,9 +226,9 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(AssignArrayStatement assignArrayStatement) {
-        semanticDB.validateArrayType(currentClassName, currentMethodName, assignArrayStatement.lv());
-        validateIntType(assignArrayStatement.index());
-        validateIntType(assignArrayStatement.rv());
+        semanticDB.validateRefIdType(currentClassName, currentMethodName, assignArrayStatement.lv(), "int[]");
+        validateType(assignArrayStatement.index(), "int");
+        validateType(assignArrayStatement.rv(), "int");
 
         assignArrayStatement.index().accept(this);
         assignArrayStatement.rv().accept(this);
@@ -253,8 +238,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(AndExpr e) {
-        validateBoolType(e.e1());
-        validateBoolType(e.e2());
+        validateType(e.e1(), "bool");
+        validateType(e.e2(), "bool");
 
         e.e1().accept(this);
         e.e2().accept(this);
@@ -262,8 +247,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(LtExpr e) {
-        validateIntType(e.e1());
-        validateIntType(e.e2());
+        validateType(e.e1(), "int");
+        validateType(e.e2(), "int");
 
         e.e1().accept(this);
         e.e2().accept(this);
@@ -271,8 +256,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(AddExpr e) {
-        validateIntType(e.e1());
-        validateIntType(e.e2());
+        validateType(e.e1(), "int");
+        validateType(e.e2(), "int");
 
         e.e1().accept(this);
         e.e2().accept(this);
@@ -280,8 +265,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(SubtractExpr e) {
-        validateIntType(e.e1());
-        validateIntType(e.e2());
+        validateType(e.e1(), "int");
+        validateType(e.e2(), "int");
 
         e.e1().accept(this);
         e.e2().accept(this);
@@ -289,8 +274,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(MultExpr e) {
-        validateIntType(e.e1());
-        validateIntType(e.e2());
+        validateType(e.e1(), "int");
+        validateType(e.e2(), "int");
 
         e.e1().accept(this);
         e.e2().accept(this);
@@ -298,8 +283,8 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(ArrayAccessExpr e) {
-        validateArrayType(e.arrayExpr());
-        validateIntType(e.indexExpr());
+        validateType(e.arrayExpr(), "int[]");
+        validateType(e.indexExpr(), "int");
 
         e.arrayExpr().accept(this);
         e.indexExpr().accept(this);
@@ -307,7 +292,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(ArrayLengthExpr e) {
-        validateArrayType(e.arrayExpr());
+        validateType(e.arrayExpr(), "int[]");
         
         e.arrayExpr().accept(this);
     }
@@ -350,7 +335,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(NewIntArrayExpr e) {
-        validateIntType(e.lengthExpr());
+        validateType(e.lengthExpr(), "int");
         e.lengthExpr().accept(this);
     }
 
@@ -361,7 +346,7 @@ public class AstSemanticCheckVisitor implements Visitor {
 
     @Override
     public void visit(NotExpr e) {
-        validateBoolType(e.e());
+        validateType(e.e(), "bool");
         e.e().accept(this);
     }
 

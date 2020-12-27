@@ -147,9 +147,10 @@ public class SemanticDB {
             if (classInfo.hasMethod(methodInfo.getName())) {
                 var currentMethodInfo = classInfo.getMethodInfo(methodInfo.getName());
 
-                // Overloading is not allowed
-                if (!currentMethodInfo.equals(methodInfo)) {
-                    throw new RuntimeException(String.format("Method %s cannot be overloaded", methodInfo.getName()));
+                if (!methodInfo.getName().equals(currentMethodInfo.getName()) ||
+                    !isSubtype(currentMethodInfo.getRetType(), methodInfo.getRetType()) ||
+                    !methodInfo.getArgTypes().equals(currentMethodInfo.getArgTypes())) {
+                        throw new RuntimeException(String.format("Method %s cannot be overloaded", methodInfo.getName()));
                 }
             }
 
@@ -223,10 +224,10 @@ public class SemanticDB {
         }
     }
 
-    public void validateArrayType(String className, String methodName, String refId) {
+    public void validateRefIdType(String className, String methodName, String refId, String correctType) {
         var type = getRefIdType(className, methodName, refId);
-        if (!type.equals("int[]")) {
-            throw new RuntimeException("Length was invoked on an object which is not array");
+        if (!type.equals(correctType)) {
+            throw new RuntimeException(String.format("Identifier %s is not of type %s", refId, correctType));
         }
     }
 }
