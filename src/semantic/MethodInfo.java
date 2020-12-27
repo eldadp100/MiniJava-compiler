@@ -88,6 +88,9 @@ public class MethodInfo {
         if (hasLocalVar(varName)) {
             throw new RuntimeException(String.format("Local var %s is already defined", varName));
         }
+        if (hasArg(varName)) {
+            throw new RuntimeException(String.format("Local var %s name collision with arguments", varName));
+        }
         this.localVars.add(new VarInfo(varName, varType));
     }
 }
