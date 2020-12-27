@@ -229,11 +229,10 @@ public class AstSemanticCheckVisitor implements Visitor {
         semanticDB.validateRefIdType(currentClassName, currentMethodName, assignArrayStatement.lv(), "int[]");
         validateType(assignArrayStatement.index(), "int");
         validateType(assignArrayStatement.rv(), "int");
+        validateInitialized(assignArrayStatement.lv());
 
         assignArrayStatement.index().accept(this);
         assignArrayStatement.rv().accept(this);
-
-        setInitialized(assignArrayStatement.lv());
     }
 
     @Override
