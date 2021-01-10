@@ -40,7 +40,6 @@ import java_cup.runtime.*;
 /****************/
 /* DECLARATIONS */
 /****************/
-%state COMMENT
 /*****************************************************************************/
 /* Code between %{ and %}, both of which must be at the beginning of a line, */
 /* will be copied verbatim (letter to letter) into the Lexer class code.     */
@@ -67,13 +66,12 @@ import java_cup.runtime.*;
 /* MACRO DECALARATIONS */
 /***********************/
 LineTerminator	= \r|\n|\r\n
-newLine			= \n
-WhiteSpace		= [\t ]
+newLine			= "\n"
+WhiteSpace		= \s+
 INTEGER			= 0 | [1-9][0-9]*
 IDENTIFIER		= [a-zA-Z][_a-zA-Z0-9]*
-one_line_comment	= "//" [^newLine]* 
-comment 		= "/\*"
-finished_comment = "\*/"
+one_line_comment	= "//".* 
+comment 		= "/*" ~"*/"
 any 			= [.+]
 /******************************/
 /* DOLAR DOLAR - DON'T TOUCH! */
@@ -127,17 +125,12 @@ any 			= [.+]
 "this"				{ return symbol(sym.THIS); }
 "new"				{ return symbol(sym.NEW); }
 "!"					{ return symbol(sym.NOT); }
-{newLine}			{ yyline++; }
+{LineTerminator}	{ /* do nothing */ }
 {WhiteSpace}		{ /* do nothing */ }
-{INTEGER}      		{ return symbol(sym.NUMBER, Integer.parseInt(yytext())); }
+{comment}			{ /* do nothing */ }
+{one_line_comment}	{ /* do nothing */ }
+{INTEGER}    		{ return symbol(sym.NUMBER, Integer.parseInt(yytext())); }
 {IDENTIFIER}		{ return symbol(sym.IDENTIFIER, new String(yytext())); }
 <<EOF>>				{ return symbol(sym.EOF); }
-{any}				{ yyerror(); }
-}
-
-<COMMENT> {
-{newLine}			{ yyline++; }
-{finished_comment} 	{ yybegin(YYINITIAL); }
-<<EOF>>				{ yyerror(); }
-[^(newLine | finished_comment)+]		{ /* do nothing */ }
+"{any}"				{ yyerror(); }
 }

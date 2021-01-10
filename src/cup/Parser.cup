@@ -1,3 +1,7 @@
+/*************/
+/* Based on a template by Oren Ish-Shalom */
+/*************/
+
 
 /*************/
 /* IMPORTS */
@@ -59,9 +63,8 @@ scan with
 /*************/
 /* TERMINALS */
 /*************/
-
-terminal CLASS                              ;                                                                                                                                                                                        
 terminal PUBLIC                             ;                                                                                                                                                                                        
+terminal CLASS                              ;                                                                                                                                                                                        
 terminal STATIC                             ;                                                                                                                                                                                        
 terminal VOID                               ;                                                                                                                                                                                        
 terminal MAIN                               ;                                                                                                                                                                                        
@@ -96,38 +99,35 @@ terminal THIS                               ;
 terminal NEW                                ;                                                                                                                                                                                            
 terminal NOT                                ;                                                                                                                                                                                            
 terminal Integer NUMBER                     ;                                                                                                                                                                                            
-terminal String IDENTIFIER                  ;                                                                                                                                                                                                
-// terminal EOF                             ;                                                                                                                                                                                            
+terminal String IDENTIFIER                  ;                 
 
 
 /*****************/
 /* NON TERMINALS */
 /*****************/
+non terminal    Program                 prog                     ;
+non terminal    MainClass               main_class               ;                                               
+non terminal    ClassDecl               class_decl               ;                                           
+non terminal    FormalArg               formal_arg               ;
+non terminal    VarDecl                 var_decl                 ;
+non terminal    MethodDecl              method_decl              ;                                           
+non terminal    Statement               statement                ;
+non terminal    AstType                 type                     ;
+non terminal    Expr                    expr                     ;                                               
 
-nonterminal     Program                 Program                                     ;
-nonterminal     ClassDecl               ClassDecl                                   ;
-nonterminal     MethodDecl              MethodDecl                                  ;
-nonterminal     VarDecl                 VarDecl                                     ;
-nonterminal     MainClass               MainClass                                   ;
-nonterminal     Statement               Statement                                   ;
-nonterminal     Expr                    Expr                                        ;
-nonterminal     IdentifierExpr          IdentifierExpr                              ;
-nonterminal     AstType                 Type                                        ;
-nonterminal     FormalArg               FormalArg                                   ;
+non terminal    LinkedList<ClassDecl>   class_decl_list          ;                                           
+non terminal    LinkedList<MethodDecl>  methods_decl_list        ;
+non terminal    LinkedList<VarDecl>     vars_decl_list           ;
+non terminal    LinkedList<Statement>   statements_list          ;                                                                                         
+non terminal    LinkedList<Expr>        expr_list                ;                                             
+non terminal    LinkedList<Expr>        cont_expr_list                ;                                             
+non terminal    LinkedList<FormalArg>   formal_arguments_list    ;
+non terminal    LinkedList<FormalArg>   cont_formal_arguments_list    ;
 
-nonterminal     List<ClassDecl>         ClassDeclsList                              ;
-nonterminal     List<MethodDecl>        MethodDeclList                              ;
-nonterminal     List<VarDecl>           VarDeclsList                                ;
-nonterminal     List<Statement>         StatementsList                              ;
-nonterminal     List<Expr>              ExprList                                    ;
-nonterminal     List<FormalArg>         FormalArgList                               ;
-nonterminal     List<FormalArg>         FormalArgListWithParenthesis                ;
-nonterminal     List<Expr>              MethodCallParamsList                        ;
 
 /***********************/
 /* OPERATOR PRECEDENCE */
 /***********************/
-
 precedence nonassoc EQUAL;
 precedence nonassoc AND;
 precedence left LT;
@@ -135,101 +135,142 @@ precedence left PLUS, MINUS;
 precedence left MULT;
 precedence right NOT, NEW;
 precedence left DOT;
+precedence left OPEN_BRACKETS, CLOSE_BRACKETS, OPEN_CURLY_BRACKETS, CLOSE_CURLY_BRACKETS, OPEN_SQUARE_BRACKETS, CLOSE_SQUARE_BRACKETS;
 
 /************************/
 /* INITIAL NON TERMINAL */
 /************************/
-start with Program;
+start with prog;
 
 /********************/
 /* PRODUCTION RULES */
 /********************/
 
-Program            ::= MainClass:mainClass ClassDeclsList:classdecls                                                                                                                                                                                                                            {: RESULT = new Program(mainClass, classdecls); :}
-                ;
+prog                        ::=     main_class:mc  class_decl_list:cdl {:RESULT = new Program(mc, cdl);:}
+                                    ;
 
-MainClass          ::= CLASS IDENTIFIER:name OPEN_CURLY_BRACKETS PUBLIC STATIC VOID MAIN OPEN_BRACKETS STRING OPEN_SQUARE_BRACKETS CLOSE_SQUARE_BRACKETS IDENTIFIER:args CLOSE_BRACKETS OPEN_CURLY_BRACKETS Statement:mainStatement CLOSE_CURLY_BRACKETS CLOSE_CURLY_BRACKETS                   {: RESULT = new MainClass(name, args, mainStatement); :}
-                ;
-                                                                                                                                                                                                                                                                                                
 
-ClassDeclsList     ::= ClassDeclsList:classdecls ClassDecl:classDecl                                                                                                                                                                                                                            {: classdecls.add(classDecl); RESULT = classdecls; :}
-                |      /* empty ClassDeclsList */                                                                                                                                                                                                                                               {: RESULT = new LinkedList<ClassDecl>(); :}
-                ;
 
-ClassDecl          ::= CLASS IDENTIFIER:name OPEN_CURLY_BRACKETS VarDeclsList:fields MethodDeclList:methoddecls CLOSE_CURLY_BRACKETS                                                                                                                                                            {: RESULT = new ClassDecl(name, null, fields, methoddecls); :}
-                                                                                                                                                                                                                                                                                                
-                |      CLASS IDENTIFIER:name EXTENDS IDENTIFIER:superName OPEN_CURLY_BRACKETS VarDeclsList:fields MethodDeclList:methoddecls CLOSE_CURLY_BRACKETS                                                                                                                               {: RESULT = new ClassDecl(name, superName, fields, methoddecls); :}
-                ;
+/********************/
+/* LISTS of stuff   */
+/********************/
+class_decl_list             ::=     class_decl_list:l class_decl:ecd  {:l.addFirst(ecd); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<ClassDecl>();:}
+                                    ;
 
-MethodDeclList      ::= MethodDecl:methodDecl MethodDeclList:methodDeclList                                                                                                                                                                                                                     {: RESULT = methodDeclList; methodDeclList.add(0, methodDecl); :}
-                |       /* empty MethodDeclList */                                                                                                                                                                                                                                              {: RESULT = new LinkedList<MethodDecl>(); :}
-                ;
+methods_decl_list           ::=     method_decl:em methods_decl_list:l   {:l.addFirst(em); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<MethodDecl>();:}
+                                    ;
 
-MethodDecl          ::= PUBLIC:p Type:returnType IDENTIFIER:name FormalArgListWithParenthesis:formals OPEN_CURLY_BRACKETS VarDeclsList:vardecls StatementsList:body RETURN Expr:ret SEMICOLON CLOSE_CURLY_BRACKETS                                                                              {: RESULT = new MethodDecl(returnType, name, formals, vardecls, body, ret, pleft); :}
-                |       Type:returnType IDENTIFIER:name FormalArgListWithParenthesis:formals OPEN_CURLY_BRACKETS VarDeclsList:vardecls StatementsList:body RETURN Expr:ret SEMICOLON CLOSE_CURLY_BRACKETS                                                                                       {: RESULT = new MethodDecl(returnType, name, formals, vardecls, body, ret, returnTypeleft); :}
-                ;
+vars_decl_list              ::=     vars_decl_list:l var_decl:ev  {:l.addFirst(ev); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<VarDecl>();:}
+                                    ;
 
-Statement           ::= IDENTIFIER:lv EQUAL Expr:expr SEMICOLON                                                                                                                                                                                                                                 {: RESULT = new AssignStatement(lv, expr); :}
-                |       IF OPEN_BRACKETS Expr:cond CLOSE_BRACKETS Statement:thencase ELSE Statement:elsecase                                                                                                                                                                                    {: RESULT = new IfStatement(cond, thencase, elsecase); :}
-                |       PRINT OPEN_BRACKETS Expr:arg CLOSE_BRACKETS SEMICOLON                                                                                                                                                                                                                   {: RESULT = new SysoutStatement(arg); :}
-                |       IDENTIFIER:lv OPEN_SQUARE_BRACKETS Expr:index CLOSE_SQUARE_BRACKETS EQUAL Expr:rv SEMICOLON                                                                                                                                                                             {: RESULT = new AssignArrayStatement(lv, index, rv); :}
-                |       WHILE OPEN_BRACKETS Expr:cond CLOSE_BRACKETS Statement:body                                                                                                                                                                                                             {: RESULT = new WhileStatement(cond, body); :}
-                |       OPEN_CURLY_BRACKETS StatementsList:statements CLOSE_CURLY_BRACKETS                                                                                                                                                                                                      {: RESULT = new BlockStatement(statements); :}
-                ;
-                                                                                        
-StatementsList      ::= Statement:statement StatementsList:statementsList                                                                                                                                                                                                                       {: RESULT = statementsList; statementsList.add(0, statement); :}
-                |     /* empty StatementsList */                                                                                                                                                                                                                                                {: RESULT = new LinkedList<Statement>(); :}
-                ;
-                                                                                        
-IdentifierExpr      ::= IDENTIFIER:id                                                                                                                                                                                                                                                           {: RESULT = new IdentifierExpr(id); :}
-                ;
-                                                                                        
-Expr                ::= Expr:e1 PLUS Expr:e2                                                                                                                                                                                                                                                    {: RESULT = new AddExpr(e1, e2); :}
-                |       Expr:e1 MINUS Expr:e2                                                                                                                                                                                                                                                   {: RESULT = new SubtractExpr(e1, e2); :}
-                |       Expr:e1 MULT Expr:e2                                                                                                                                                                                                                                                    {: RESULT = new MultExpr(e1, e2); :}
-                |       Expr:e1 LT Expr:e2                                                                                                                                                                                                                                                      {: RESULT = new LtExpr(e1, e2); :}
-                |       Expr:e1 AND Expr:e2                                                                                                                                                                                                                                                     {: RESULT = new AndExpr(e1, e2); :}
-                |       Expr:arrayExpr OPEN_SQUARE_BRACKETS Expr:indexExpr CLOSE_SQUARE_BRACKETS                                                                                                                                                                                                {: RESULT = new ArrayAccessExpr(arrayExpr, indexExpr); :}
-                |       Expr:arrayExpr DOT LENGTH                                                                                                                                                                                                                                               {: RESULT = new ArrayLengthExpr(arrayExpr); :}
-                |       Expr:ownerExpr DOT IDENTIFIER:methodId MethodCallParamsList:actuals                                                                                                                                                                                                     {: RESULT = new MethodCallExpr(ownerExpr, methodId, actuals); :}
-                |       NUMBER:num                                                                                                                                                                                                                                                              {: RESULT = new IntegerLiteralExpr(num.intValue()); :}
-                |       TRUE                                                                                                                                                                                                                                                                    {: RESULT = new TrueExpr(); :}
-                |       FALSE                                                                                                                                                                                                                                                                   {: RESULT = new FalseExpr(); :}
-                |       IDENTIFIER:id                                                                                                                                                                                                                                                           {: RESULT = new IdentifierExpr(id); :}
-                |       THIS                                                                                                                                                                                                                                                                    {: RESULT = new ThisExpr(); :}
-                |       NEW INT OPEN_SQUARE_BRACKETS Expr:lengthExpr CLOSE_SQUARE_BRACKETS                                                                                                                                                                                                      {: RESULT = new NewIntArrayExpr(lengthExpr); :}
-                |       NEW IDENTIFIER:classId OPEN_BRACKETS CLOSE_BRACKETS                                                                                                                                                                                                                     {: RESULT = new NewObjectExpr(classId); :}
-                |       NOT:not Expr:e                                                                                                                                                                                                                                                          {: RESULT = new NotExpr(e); :}
-                |       OPEN_BRACKETS Expr:expr CLOSE_BRACKETS                                                                                                                                                                                                                                  {: RESULT = expr; :}
-                ;
-                                                                                        
-Type                ::= INT                                                                                                                                                                                                                                                                     {: RESULT = new IntAstType(); :}
-                |       BOOLEAN                                                                                                                                                                                                                                                                 {: RESULT = new BoolAstType(); :}
-                |       IDENTIFIER:classId                                                                                                                                                                                                                                                      {: RESULT = new RefType(classId); :}
-                |       INT OPEN_SQUARE_BRACKETS CLOSE_SQUARE_BRACKETS                                                                                                                                                                                                                          {: RESULT = new IntArrayAstType(); :}
-                ;
-                                                                                        
-VarDecl             ::= Type:type IDENTIFIER:name SEMICOLON                                                                                                                                                                                                                                     {: RESULT = new VarDecl(type, name, typeleft); :}
-                ;
-                                                                                        
-VarDeclsList        ::= VarDeclsList:varDeclsList VarDecl:varDecl                                                                                                                                                                                                                               {: RESULT = varDeclsList; varDeclsList.add(varDecl); :}
-                |       /* empty VarDeclsList */                                                                                                                                                                                                                                                {: RESULT = new LinkedList<VarDecl>(); :}
-                ;
-                                                                                        
-ExprList            ::= Expr:e                                                                                                                                                                                                                                                                  {: RESULT = new LinkedList<Expr>(); RESULT.add(e); :}
-                |       Expr:e COMMA ExprList:exprList                                                                                                                                                                                                                                          {: RESULT = exprList; exprList.add(e); :}
-                ;
-                                                                                        
-MethodCallParamsList    ::= OPEN_BRACKETS CLOSE_BRACKETS                                                                                                                                                                                                                                        {: RESULT = new LinkedList<Expr>(); :}
-                |       OPEN_BRACKETS ExprList:exprList CLOSE_BRACKETS                                                                                                                                                                                                                          {: RESULT = exprList; :}
-                ;
-                                                                                        
-FormalArg           ::= Type:type IDENTIFIER:name                                                                                                                                                                                                                                               {: RESULT = new FormalArg(type, name, typeleft); :};
-                                                                                        
-FormalArgList       ::= FormalArg:formalArg                                                                                                                                                                                                                                                     {: RESULT = new LinkedList<FormalArg>(); RESULT.add(formalArg); :}
-                |       FormalArgList:formalArgList COMMA FormalArg:formalArg                                                                                                                                                                                                                   {: RESULT = formalArgList; formalArgList.add(formalArg); :}
-                ;
-                                                                                        
-FormalArgListWithParenthesis ::= OPEN_BRACKETS CLOSE_BRACKETS                                                                                                                                                                                                                                   {: RESULT = new LinkedList<FormalArg>(); :}
-                |       OPEN_BRACKETS FormalArgList:formalArgList CLOSE_BRACKETS                                                                                                                                                                                                                {: RESULT = formalArgList; :}
-                ;
+statements_list             ::=     statement:es statements_list:l {:l.addFirst(es); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<Statement>();:}
+                                    ;
+
+expr_list                   ::=     expr:ee cont_expr_list:l {:l.addFirst(ee); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<Expr>();:}
+                                    ;
+cont_expr_list              ::=     COMMA expr:ee cont_expr_list:l {:l.addFirst(ee); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<Expr>();:}
+                                    ;
+
+formal_arguments_list       ::=     formal_arg:ef cont_formal_arguments_list:l {:l.addFirst(ef); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<FormalArg>();:}
+                                    ;
+
+cont_formal_arguments_list  ::=     COMMA formal_arg:ef cont_formal_arguments_list:l {:l.addFirst(ef); RESULT = l;:}
+                                    | {:RESULT = new LinkedList<FormalArg>();:}
+                                    ;
+
+/********************/
+/* CLASSES          */
+/********************/
+
+class_decl              ::= CLASS IDENTIFIER:cn
+                            OPEN_CURLY_BRACKETS
+                            vars_decl_list:fields
+                            methods_decl_list:methods
+                            CLOSE_CURLY_BRACKETS
+                            {:RESULT = new ClassDecl(cn, null, fields, methods);:}
+
+                            | CLASS IDENTIFIER:cn EXTENDS IDENTIFIER:sn
+                              OPEN_CURLY_BRACKETS 
+                              vars_decl_list:fields
+                              methods_decl_list:methods
+                              CLOSE_CURLY_BRACKETS
+                              {:RESULT = new ClassDecl(cn, sn, fields, methods);:}
+                            ;
+
+main_class              ::= CLASS IDENTIFIER:cn 
+                            OPEN_CURLY_BRACKETS
+                            PUBLIC STATIC VOID MAIN OPEN_BRACKETS STRING OPEN_SQUARE_BRACKETS CLOSE_SQUARE_BRACKETS IDENTIFIER:arg_name CLOSE_BRACKETS
+                            OPEN_CURLY_BRACKETS
+                            statement:the_main_statment
+                            CLOSE_CURLY_BRACKETS
+                            CLOSE_CURLY_BRACKETS
+                            {:RESULT = new MainClass(cn, arg_name, the_main_statment);:}
+                            ;
+
+
+/********************/
+/* METHODS          */
+/********************/
+var_decl                ::= type:t IDENTIFIER:name SEMICOLON {:RESULT = new VarDecl(t, name, lexer.getLine());:} // TODO: remove lexer line
+                            ;
+
+/********************/
+/* VARIABLES        */
+/********************/
+
+method_decl             ::= PUBLIC type:t IDENTIFIER:name OPEN_BRACKETS formal_arguments_list:fal CLOSE_BRACKETS OPEN_CURLY_BRACKETS vars_decl_list:vdl statements_list:sl RETURN expr:r SEMICOLON CLOSE_CURLY_BRACKETS
+                            {:RESULT = new MethodDecl(t, name, fal, vdl, sl, r, lexer.getLine());:} // TODO: ...
+                            ;
+/********************/
+/* STATEMENTS       */
+/********************/
+statement               ::= PRINT OPEN_BRACKETS expr:e CLOSE_BRACKETS SEMICOLON {:RESULT = new SysoutStatement(e);:}
+                            | IF OPEN_BRACKETS expr:cond CLOSE_BRACKETS statement:body_if ELSE statement:body_else {:RESULT = new IfStatement(cond, body_if, body_else);:}
+                            | WHILE OPEN_BRACKETS expr:cond CLOSE_BRACKETS statement:body {:RESULT = new WhileStatement(cond, body);:}
+                            | IDENTIFIER:assignee EQUAL expr:assigner SEMICOLON {:RESULT = new AssignStatement(assignee, assigner);:}
+                            | IDENTIFIER:assignee OPEN_SQUARE_BRACKETS expr:idx CLOSE_SQUARE_BRACKETS EQUAL expr:assigner SEMICOLON {:RESULT = new AssignArrayStatement(assignee, idx, assigner);:}
+                            | OPEN_CURLY_BRACKETS statements_list:sl CLOSE_CURLY_BRACKETS  {:RESULT = new BlockStatement(sl);:}
+                            ;
+
+/********************/
+/* EXPRESSIONS      */
+/********************/
+expr                    ::= NUMBER:x {:RESULT = new IntegerLiteralExpr(x);:} 
+                            | IDENTIFIER:id {:RESULT = new IdentifierExpr(id);:} 
+                            | TRUE {:RESULT = new TrueExpr();:} 
+                            | FALSE {:RESULT = new FalseExpr();:} 
+                            | THIS  {:RESULT = new ThisExpr();:} 
+
+                            | expr:e1 PLUS expr:e2             {:RESULT = new AddExpr(e1, e2);:}
+                            | expr:e1 MINUS expr:e2            {:RESULT = new SubtractExpr(e1, e2);:}
+                            | expr:e1 MULT expr:e2             {:RESULT = new MultExpr(e1, e2);:}
+                            | expr:e1 AND expr:e2              {:RESULT = new AndExpr(e1, e2);:}
+                            | expr:e1 LT expr:e2               {:RESULT = new LtExpr(e1, e2);:}
+
+                            | NOT expr:e  {:RESULT = new NotExpr(e);:}
+                            | OPEN_BRACKETS expr:e CLOSE_BRACKETS {:RESULT = e;:}
+
+                            | NEW IDENTIFIER:cn OPEN_BRACKETS CLOSE_BRACKETS {:RESULT = new NewObjectExpr(cn);:}
+                            | NEW INT OPEN_SQUARE_BRACKETS expr:size CLOSE_SQUARE_BRACKETS {:RESULT = new NewIntArrayExpr(size);:}
+                            | expr:e DOT LENGTH  {:RESULT = new ArrayLengthExpr(e);:}
+                            | expr:arr OPEN_SQUARE_BRACKETS expr:idx CLOSE_SQUARE_BRACKETS {:RESULT = new ArrayAccessExpr(arr, idx);:}
+                            | expr:owner DOT IDENTIFIER:method OPEN_BRACKETS expr_list:inputs CLOSE_BRACKETS {:RESULT = new MethodCallExpr(owner, method, inputs);:}
+                            ;
+/****************************/
+/* TYPES + FORMAL ARGUMENTS */
+/****************************/
+type                    ::= INT {:RESULT = new IntAstType();:} 
+                            | BOOLEAN {:RESULT = new BoolAstType();:} 
+                            | IDENTIFIER:cn {:RESULT = new RefType(cn);:} 
+                            | INT OPEN_SQUARE_BRACKETS CLOSE_SQUARE_BRACKETS {:RESULT = new IntArrayAstType();:}
+                        ;
+
+formal_arg              ::= type:t IDENTIFIER:arg_name   {:RESULT = new FormalArg(t, arg_name, lexer.getLine());:}   //TODO: remove getLine
+                        ;
