@@ -1,5 +1,5 @@
 /***************************/
-/* FILE NAME: LEX_FILE.lex */
+/* Based on a template by Oren Ish-Shalom */
 /***************************/
 
 /*************/
@@ -40,6 +40,7 @@ import java_cup.runtime.*;
 /****************/
 /* DECLARATIONS */
 /****************/
+%state COMMENT
 /*****************************************************************************/
 /* Code between %{ and %}, both of which must be at the beginning of a line, */
 /* will be copied verbatim (letter to letter) into the Lexer class code.     */
@@ -58,12 +59,22 @@ import java_cup.runtime.*;
 	/*******************************************/
 	public int getLine()    { return yyline + 1; }
 	public int getCharPos() { return yycolumn;   }
+	public void yyerror()   { throw new java.lang.Error(); }
+
 %}
 
 /***********************/
 /* MACRO DECALARATIONS */
 /***********************/
-
+LineTerminator	= \r|\n|\r\n
+newLine			= \n
+WhiteSpace		= [\t ]
+INTEGER			= 0 | [1-9][0-9]*
+IDENTIFIER		= [a-zA-Z][_a-zA-Z0-9]*
+one_line_comment	= "//" [^newLine]* 
+comment 		= "/\*"
+finished_comment = "\*/"
+any 			= [.+]
 /******************************/
 /* DOLAR DOLAR - DON'T TOUCH! */
 /******************************/
@@ -81,6 +92,52 @@ import java_cup.runtime.*;
 /**************************************************************/
 
 <YYINITIAL> {
+"class"				{ return symbol(sym.CLASS); }
 "public"            { return symbol(sym.PUBLIC); }
+"static"			{ return symbol(sym.STATIC); }
+"void"				{ return symbol(sym.VOID); }
+"main"				{ return symbol(sym.MAIN); }
+"("					{ return symbol(sym.OPEN_BRACKETS); }
+")"					{ return symbol(sym.CLOSE_BRACKETS); }
+"{"					{ return symbol(sym.OPEN_CURLY_BRACKETS); }
+"}"					{ return symbol(sym.CLOSE_CURLY_BRACKETS); }
+"["					{ return symbol(sym.OPEN_SQUARE_BRACKETS); }
+"]"					{ return symbol(sym.CLOSE_SQUARE_BRACKETS); }
+"String"			{ return symbol(sym.STRING); }
+"extends"			{ return symbol(sym.EXTENDS); }
+";"					{ return symbol(sym.SEMICOLON); }
+","					{ return symbol(sym.COMMA); }
+"return" 			{ return symbol(sym.RETURN); }
+"int"				{ return symbol(sym.INT); }
+"boolean"			{ return symbol(sym.BOOLEAN); }
+"if"				{ return symbol(sym.IF); }
+"else"				{ return symbol(sym.ELSE); }
+"while"				{ return symbol(sym.WHILE); }
+"System.out.println" { return symbol(sym.PRINT); }
+"="					{ return symbol(sym.EQUAL); }
+"&&"				{ return symbol(sym.AND); }
+"<"					{ return symbol(sym.LT); }
+"+"					{ return symbol(sym.PLUS); }
+"-"					{ return symbol(sym.MINUS); }
+"*"					{ return symbol(sym.MULT); }
+"."					{ return symbol(sym.DOT); }
+"length"			{ return symbol(sym.LENGTH); }
+"true"				{ return symbol(sym.TRUE); }
+"false"				{ return symbol(sym.FALSE); }
+"this"				{ return symbol(sym.THIS); }
+"new"				{ return symbol(sym.NEW); }
+"!"					{ return symbol(sym.NOT); }
+{newLine}			{ yyline++; }
+{WhiteSpace}		{ /* do nothing */ }
+{INTEGER}      		{ return symbol(sym.NUMBER, Integer.parseInt(yytext())); }
+{IDENTIFIER}		{ return symbol(sym.IDENTIFIER, new String(yytext())); }
 <<EOF>>				{ return symbol(sym.EOF); }
+{any}				{ yyerror(); }
+}
+
+<COMMENT> {
+{newLine}			{ yyline++; }
+{finished_comment} 	{ yybegin(YYINITIAL); }
+<<EOF>>				{ yyerror(); }
+[^(newLine | finished_comment)+]		{ /* do nothing */ }
 }
