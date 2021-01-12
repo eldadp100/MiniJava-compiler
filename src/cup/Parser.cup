@@ -162,7 +162,7 @@ methods_decl_list           ::=     method_decl:em methods_decl_list:l   {:l.add
                                     | {:RESULT = new LinkedList<MethodDecl>();:}
                                     ;
 
-vars_decl_list              ::=     vars_decl_list:l var_decl:ev  {:l.addFirst(ev); RESULT = l;:}
+vars_decl_list              ::=     vars_decl_list:l var_decl:ev  {:l.add(ev); RESULT = l;:}
                                     | {:RESULT = new LinkedList<VarDecl>();:}
                                     ;
 
