@@ -154,7 +154,7 @@ prog                        ::=     main_class:mc  class_decl_list:cdl {:RESULT 
 /********************/
 /* LISTS of stuff   */
 /********************/
-class_decl_list             ::=     class_decl_list:l class_decl:ecd  {:l.addFirst(ecd); RESULT = l;:}
+class_decl_list             ::=     class_decl_list:l class_decl:ecd  {:l.add(ecd); RESULT = l;:}
                                     | {:RESULT = new LinkedList<ClassDecl>();:}
                                     ;
 
