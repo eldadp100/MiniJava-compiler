@@ -1,2 +1,8 @@
+# Minijava compiler
 A compiler for simplified version of java. 
-Taking a text file, transforming it to an abstract syntax tree, applying static analysis on top of it to enforce type system correctness and to find use before initialization occurrences, then transforming the AST to LLVM code that is finally converted to assembly and executed.
+
+1. Syntax analysis : text file to an abstract syntax tree.
+2. Semantic analysis : Type Checking, Use before initialization.
+3. Intermediate Code Generation : Converting the ast to LLVM in recursive manner.
+
+use 'ant' to build the project.
